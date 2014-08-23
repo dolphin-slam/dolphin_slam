@@ -7,10 +7,18 @@ project(dolphin_slam)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   time_monitor
+  sensor_msgs
+  std_msgs
+  cv_bridge
+  visualization_msgs
+  message_generation
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+
+find_package(OpenCV REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -43,11 +51,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   ImageHistogram.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -64,10 +71,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -81,7 +89,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES dolphin_slam
-#  CATKIN_DEPENDS roscpp time_monitor
+  CATKIN_DEPENDS roscpp time_monitor message_runtime
 #  DEPENDS system_lib
 )
 
@@ -91,9 +99,11 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
+  include
+  include/dolphin_slam
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -102,7 +112,15 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-# add_executable(dolphin_slam_node src/dolphin_slam_node.cpp)
+add_executable(image_processing_node
+    src/image_processing_node.cpp
+    src/dolphin_slam/image_processing.cpp
+    src/dolphin_slam/bag_of_features.cpp
+)
+target_link_libraries(image_processing_node
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
