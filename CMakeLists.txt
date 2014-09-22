@@ -60,6 +60,9 @@ add_message_files(
    LocalViewNetwork.msg
    LocalViewCell.msg
    ExecutionTime.msg
+   ExperienceEvent.msg
+   PlaceCellActivity.msg
+   Error.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -150,25 +153,25 @@ target_link_libraries(local_view_node
 )
 
 ### Declare a cpp executable
-#add_executable(experience_map_node
-#    src/dolphin_slam/experience_map.cpp
-#    src/experience_map_node.cpp
-#)
+add_executable(experience_map_node
+    src/dolphin_slam/experience_map.cpp
+    src/experience_map_node.cpp
+)
 
-#target_link_libraries(experience_map_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+target_link_libraries(experience_map_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 ### Declare a cpp executable
-#add_executable(pose_cell_node
-#    src/dolphin_slam/pose_cell_network.cpp
-#    src/pose_cell_node.cpp
-#)
-#target_link_libraries(pose_cell_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+add_executable(place_cell_node
+    src/dolphin_slam/place_cell_network.cpp
+    src/place_cell_node.cpp
+)
+target_link_libraries(place_cell_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 ### Declare a cpp executable
 add_executable(robot_state_node
@@ -185,8 +188,8 @@ target_link_libraries(robot_state_node
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
-#add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
-#add_dependencies(pose_cell_node dolphin_slam_generate_messages_cpp)
+add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
+add_dependencies(place_cell_node dolphin_slam_generate_messages_cpp)
 add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable/library
