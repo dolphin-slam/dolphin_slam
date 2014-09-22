@@ -55,6 +55,9 @@ find_package(OpenCV REQUIRED)
 add_message_files(
    FILES
    ImageHistogram.msg
+   LocalViewNetwork.msg
+   LocalViewCell.msg
+   ExecutionTime.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -123,6 +126,8 @@ target_link_libraries(image_processing_node
     ${catkin_LIBRARIES}
 )
 
+
+
 ## Declare a cpp executable
 add_executable(bof_training
     src/bof_training.cpp
@@ -132,6 +137,56 @@ target_link_libraries(bof_training
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
 )
+
+## Declare a cpp executable
+add_executable(local_view_node
+    src/local_view_node.cpp
+    src/dolphin_slam/local_view_module.cpp
+)
+target_link_libraries(local_view_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
+
+### Declare a cpp executable
+#add_executable(experience_map_node
+#    src/dolphin_slam/experience_map.cpp
+#    src/experience_map_node.cpp
+#)
+
+#target_link_libraries(experience_map_node
+#    ${OpenCV_LIBRARIES}
+#    ${catkin_LIBRARIES}
+#)
+
+### Declare a cpp executable
+#add_executable(pose_cell_node
+#    src/dolphin_slam/pose_cell_network.cpp
+#    src/pose_cell_node.cpp
+#)
+#target_link_libraries(pose_cell_node
+#    ${OpenCV_LIBRARIES}
+#    ${catkin_LIBRARIES}
+#)
+
+### Declare a cpp executable
+#add_executable(robot_state_node
+#    src/dolphin_slam/robot_state.cpp
+#    src/robot_state_node.cpp
+#)
+
+#target_link_libraries(robot_state_node
+#    ${OpenCV_LIBRARIES}
+#    ${catkin_LIBRARIES}
+#)
+
+
+## Add cmake target dependencies of the executable/library
+## as an example, message headers may need to be generated before nodes
+add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
+#add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
+#add_dependencies(pose_cell_node dolphin_slam_generate_messages_cpp)
+#add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
