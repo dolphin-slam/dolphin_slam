@@ -22,8 +22,11 @@ void ImageProcessing::loadParameters()
     //! int surf_threshold;
     private_nh_.param<int>("surf_threshold",parameters_.surf_threshold_,100);
 
-    //! string bof_dictionary_path; Full path
-    private_nh_.param<string>("bof_dictionary_path",parameters_.bof_dictionary_path_,"dictionary.xml");
+    //! int bof_groups;
+    private_nh_.param<int>("bof_groups",parameters_.bof_groups_,100);
+
+    //! string bof_dictionary_path
+    private_nh_.param<string>("bof_vocabulary_path",parameters_.bof_vocabulary_path_,"bof_vocabularies");
 
     //! string image_topic;
     private_nh_.param<string>("image_topic",parameters_.image_topic_,"/image_raw");
@@ -57,9 +60,17 @@ void ImageProcessing::createROSPublishers()
 
 bool ImageProcessing::initBoF()
 {
-    bag_of_features_.setThreshold(parameters_.surf_threshold_);
+    string fullpath = parameters_.bof_vocabulary_path_ + string("/") +
+            string("_s") + boost::lexical_cast<string>(parameters_.surf_threshold_) +
+            string("_g") + boost::lexical_cast<string>(parameters_.bof_groups_) + string(".xml");
 
-    bag_of_features_.readDictionary(parameters_.bof_dictionary_path_.c_str());
+    cv::FileStorage fs(fullpath,cv::FileStorage::READ);
+
+    fs["BoF"] >> bag_of_features_;
+
+    //! Testa se os valores do threshold e numero de grupos estão de acordo
+    ROS_ASSERT(parameters_.surf_threshold_ == bag_of_features_.getThreshold());
+    ROS_ASSERT(parameters_.bof_groups_ == bag_of_features_.getGroups());
 
 }
 
@@ -85,19 +96,16 @@ bool ImageProcessing::computeBoFHistogram()
 bool ImageProcessing::update()
 {
     //! Do all work here
+
     computeBoFHistogram();
 
-
-
-
+    publishOutput();
 
 }
 
 
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 {
-
-
     current_image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
     update();

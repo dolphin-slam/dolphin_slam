@@ -28,11 +28,11 @@ namespace dolphin_slam
 struct ImageProcessingParameters
 {
     int surf_threshold_;
-    string bof_dictionary_path_;
+    int bof_groups_;
+    string bof_vocabulary_path_;
     string image_topic_;
     string image_transport_;
     string output_topic_;
-
 };
 
 

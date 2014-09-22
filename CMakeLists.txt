@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   message_generation
   image_transport
+  rosbag
 )
 
 ## System dependencies are found with CMake's conventions
@@ -102,8 +103,8 @@ catkin_package(
 include_directories(
   include
   include/dolphin_slam
-  ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -118,8 +119,18 @@ add_executable(image_processing_node
     src/dolphin_slam/bag_of_features.cpp
 )
 target_link_libraries(image_processing_node
-    ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
+
+## Declare a cpp executable
+add_executable(bof_training
+    src/bof_training.cpp
+    src/dolphin_slam/bag_of_features.cpp
+)
+target_link_libraries(bof_training
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 ## Add cmake target dependencies of the executable/library

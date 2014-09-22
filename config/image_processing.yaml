@@ -1,0 +1,6 @@
+surf_threshold: 100
+bof_groups: 100
+bof_vocabulary_path: '/Codigos/indigo_ws/src/dolphin_slam/bow_vocabularies/'
+image_topic: /image_raw
+image_transport: raw
+output_topic: /image_histogram

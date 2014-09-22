@@ -1,0 +1,8 @@
+<launch>
+
+<node name="bof_training" pkg="dolphin_slam" type="bof_training" required="true">
+	<rosparam command="load" file="$(find dolphin_slam)/config/bof_training.yaml" />
+</node>
+
+</launch>
+

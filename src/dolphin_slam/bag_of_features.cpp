@@ -6,21 +6,29 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-BoF::BoF()
+BoF::BoF(int number_of_groups, int surf_threshold)
 {
 
-    threshold_ = 100;
+    groups_  = number_of_groups;
+    surf_threshold_ = surf_threshold;
+
     //! create FlannBased matcher
     matcher_ = cv::DescriptorMatcher::create("FlannBased");
+
+    //! create SURF detector
+    detector_ = new cv::SurfFeatureDetector(surf_threshold_);
 
     //! create SURF extractor
     extractor_ = cv::DescriptorExtractor::create("SURF");
 
-    //! create SURF detector
-    detector_ = new cv::SurfFeatureDetector(threshold_);
 
     //! create BoW Image Descriptor Extractor
     bofDE_ = new cv::BOWImgDescriptorExtractor(extractor_,matcher_);
+
+    trainer_ = new cv::BOWKMeansTrainer(groups_,
+                                              cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
+                                              1,
+                                              cv::KMEANS_PP_CENTERS);
 }
 
 /*!
@@ -40,12 +48,11 @@ BoF::~BoF()
 void BoF::setThreshold(int threshold)
 {
     //! Set threshold value
-    threshold_ = threshold;
-
+    surf_threshold_ = threshold;
 
     delete detector_;
     //! Set threshold value at the SURF detector
-    detector_ = new cv::SurfFeatureDetector(threshold_);
+    detector_ = new cv::SurfFeatureDetector(surf_threshold_);
 }
 
 /*!
@@ -55,13 +62,48 @@ void BoF::setThreshold(int threshold)
 int BoF::getThreshold()
 {
     //! Return threshold value
-    return threshold_;
+    return surf_threshold_;
+}
+
+void BoF::addTrainingImage(cv::Mat image)
+{
+    cv::Mat features;
+
+    //! Detect SURF Features in the image
+    detector_->detect(image, keypts_);
+
+    //! Compute SURF descriptors
+    extractor_->compute(image, keypts_, features);
+
+    //! Add descriptors to training set
+    trainer_->add(features);
+}
+
+void BoF::train()
+{
+    vocabulary_ = trainer_->cluster();
 }
 
 std::vector<cv::KeyPoint> BoF::getKeypoints()
 {
     return keypts_;
 }
+int BoF::getGroups()
+{
+    return groups_;
+}
+
+void BoF::setGroups(int groups)
+{
+    groups_ = groups;
+
+    delete trainer_;
+    trainer_ = new cv::BOWKMeansTrainer(groups_,
+                                              cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
+                                              1,
+                                              cv::KMEANS_PP_CENTERS);
+}
+
 
 /*!
  * \brief Create Histogram from Mat
@@ -72,6 +114,8 @@ cv::Mat BoF::createHistogram(const cv::Mat &image)
 {
     //! Detect SURF Features in the image
     detector_->detect(image, keypts_);
+
+
     //! Create the Image's Histogram
     bofDE_->compute(image,keypts_,histogram_);
 
@@ -79,11 +123,34 @@ cv::Mat BoF::createHistogram(const cv::Mat &image)
     return histogram_;
 }
 
+//! Write serialization for this class
+void BoF::write(cv::FileStorage& fs) const{
+
+    fs << "{";
+    fs << "groups" << groups_;
+    fs << "threshold" << surf_threshold_;
+    fs << "vocabulary" << vocabulary_;
+    fs << "}";
+
+}
+
+void BoF::read(const cv::FileNode &node)
+{
+    node["groups"] >> groups_;
+
+    node["threshold"] >> surf_threshold_;
+    setThreshold(surf_threshold_); //! Call to adjust surf parameters
+
+    node["vocabulary"] >> vocabulary_;
+    bofDE_->setVocabulary(vocabulary_);
+
+}
+
 /*!
  * \brief Read the BoW's Dictionary
  * \param Path to dictionary : const char*
  */
-void BoF::readDictionary(const char* path)
+void BoF::readVocabulary(string path)
 {
     //! Create FileStorage
     cv::FileStorage fs;
@@ -99,12 +166,23 @@ void BoF::readDictionary(const char* path)
     }
 
     //! Read the dictionary from File
-    fs["Dicionario"] >> dictionary_;
+    fs["Dicionario"] >> vocabulary_;
     //! Release the File
     fs.release();
 
     //! Set BoW Vocabulary
-    bofDE_->setVocabulary(dictionary_);
+    bofDE_->setVocabulary(vocabulary_);
+}
+
+//These write and read functions must be defined for the serialization in FileStorage to work
+void write(cv::FileStorage& fs, const std::string&, const BoF& bof)
+{
+    bof.write(fs);
+}
+
+void read(const cv::FileNode& node, BoF& bof, const BoF& default_value)
+{
+    bof.read(node);
 }
 
 } // namespace
