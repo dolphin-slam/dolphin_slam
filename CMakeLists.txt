@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   image_transport
   rosbag
+  message_generation
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -61,11 +63,10 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+   FILES
+   RobotPose.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -170,15 +171,15 @@ target_link_libraries(local_view_node
 #)
 
 ### Declare a cpp executable
-#add_executable(robot_state_node
-#    src/dolphin_slam/robot_state.cpp
-#    src/robot_state_node.cpp
-#)
+add_executable(robot_state_node
+    src/dolphin_slam/robot_state.cpp
+    src/robot_state_node.cpp
+)
 
-#target_link_libraries(robot_state_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+target_link_libraries(robot_state_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 
 ## Add cmake target dependencies of the executable/library
@@ -186,7 +187,7 @@ target_link_libraries(local_view_node
 add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
 #add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
 #add_dependencies(pose_cell_node dolphin_slam_generate_messages_cpp)
-#add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
+add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
