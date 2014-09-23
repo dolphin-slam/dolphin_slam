@@ -1,0 +1,4 @@
+dvl_topic = '/g500/dvl'
+imu_topic = '/g500/imu'
+gt_topic = '/ground_truth'
+

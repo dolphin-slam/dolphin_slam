@@ -91,8 +91,6 @@ private:
     float localisationErrorEM_;
     float localisationErrorDR_;
 
-    float max_error_for_loop_closure_;
-
     double experience_map_error_;
     double dead_reckoning_error_;
     cv::Point3d experience_map_independent_error_;
