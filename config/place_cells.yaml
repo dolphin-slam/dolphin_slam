@@ -1,0 +1,6 @@
+number_of_neurons: [30, 30, 30]        
+distance_between_neurons: [ 0.1, 0.1, 0.1]           
+excitatory_variance: [0.2, 0.2, 0.2]             
+input_learning_rate: 0.25     
+multiple_local_view_active: true                                
+use_gaussian_weights: false

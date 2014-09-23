@@ -11,7 +11,7 @@ namespace dolphin_slam
 *
 */
 PlaceCellNetwork::PlaceCellNetwork():
-    number_of_recurrent_excitatory_weights_(4,1)
+    number_of_recurrent_excitatory_weights_(DIMS,1)
 {
     max_view_template_id_ = 0;
     most_active_lv_cell_ = -1;
@@ -41,7 +41,7 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.getParam("number_of_neurons",parameters_.number_of_neurons_);
 
-    private_nh.getParam("distance_between_neurons_",parameters_.distance_between_neurons_);
+    private_nh.getParam("distance_between_neurons",parameters_.distance_between_neurons_);
 
     private_nh.getParam("excitatory_variance",parameters_.excitatory_variance_);
 
@@ -85,8 +85,8 @@ void PlaceCellNetwork::createROSServices()
 */
 void PlaceCellNetwork::createNeurons()
 {
-    neurons_.create(4,&parameters_.number_of_neurons_[0]);
-    aux_neurons_.create(4,&parameters_.number_of_neurons_[0]);
+    neurons_.create(DIMS,&parameters_.number_of_neurons_[0]);
+    aux_neurons_.create(DIMS,&parameters_.number_of_neurons_[0]);
 
     initNeuronsActivity();
 }
@@ -95,12 +95,12 @@ void PlaceCellNetwork::createNeurons()
 void PlaceCellNetwork::createExcitatoryWeights()
 {
 
-    for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
+    for(int i=0;i<DIMS;i++)
     {
         number_of_recurrent_excitatory_weights_[i] = (parameters_.number_of_neurons_[i]+2)/2;
     }
 
-    recurrent_excitatory_weights_.create(4,&number_of_recurrent_excitatory_weights_[0]);
+    recurrent_excitatory_weights_.create(DIMS,&number_of_recurrent_excitatory_weights_[0]);
 
     initRecurrentExcitatoryWeights();
 
@@ -122,9 +122,9 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
     float dist;
 
     float factor = 0;
-    std::vector<std::vector<float> >weights_per_dimension(4);
+    std::vector<std::vector<float> >weights_per_dimension(DIMS);
 
-    for(int i=0;i<4;i++)
+    for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
     {
         weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
         cout << "Excitatory weigths dimension "<< i << " = [";
@@ -140,7 +140,7 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
 
 
 
-    int windex[4];
+    int windex[DIMS];
 
     if(parameters_.use_gaussian_weights_)
     {
@@ -150,16 +150,13 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
             {
                 for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
                 {
-                    for(int l=0;l<number_of_recurrent_excitatory_weights_[3];l++)
-                    {
-                        windex[0]=i;    windex[1]=j;    windex[2]=k;    windex[3]=l;
+                    windex[0]=i;    windex[1]=j;    windex[2]=k;
 
-                        recurrent_excitatory_weights_(windex) =
-                                weights_per_dimension[0][i]*
-                                weights_per_dimension[1][j]*
-                                weights_per_dimension[2][k]*
-                                weights_per_dimension[3][l];
-                    }
+                    recurrent_excitatory_weights_(windex) =
+                            weights_per_dimension[0][i]*
+                            weights_per_dimension[1][j]*
+                            weights_per_dimension[2][k];
+
                 }
             }
         }
@@ -174,25 +171,21 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
             {
                 for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
                 {
-                    for(int l=0;l<number_of_recurrent_excitatory_weights_[3];l++)
-                    {
-                        windex[0]=i;    windex[1]=j;    windex[2]=k;    windex[3]=l;
-                        factor = pow(i*parameters_.distance_between_neurons_[0],2)/parameters_.excitatory_variance_[0] +
-                                pow(j*parameters_.distance_between_neurons_[1],2)/parameters_.excitatory_variance_[1] +
-                                pow(k*parameters_.distance_between_neurons_[2],2)/parameters_.excitatory_variance_[2] +
-                                pow(l*parameters_.distance_between_neurons_[3],2)/parameters_.excitatory_variance_[3];
 
-                        recurrent_excitatory_weights_(windex) = (1 - factor)*
-                                weights_per_dimension[0][i]*
-                                weights_per_dimension[1][j]*
-                                weights_per_dimension[2][k]*
-                                weights_per_dimension[3][l];
-                    }
+                    windex[0]=i;    windex[1]=j;    windex[2]=k;
+                    factor = pow(i*parameters_.distance_between_neurons_[0],2)/parameters_.excitatory_variance_[0] +
+                            pow(j*parameters_.distance_between_neurons_[1],2)/parameters_.excitatory_variance_[1] +
+                            pow(k*parameters_.distance_between_neurons_[2],2)/parameters_.excitatory_variance_[2];
+
+                    recurrent_excitatory_weights_(windex) = (1 - factor)*
+                            weights_per_dimension[0][i]*
+                            weights_per_dimension[1][j]*
+                            weights_per_dimension[2][k];
                 }
             }
         }
-
     }
+
 
     normalizeRecurrentExcitatoryWeights();
 
@@ -212,10 +205,10 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
 
 void PlaceCellNetwork::normalizeRecurrentExcitatoryWeights()
 {
-    int index[4];
+    int index[DIMS];
     int i,j,k,l;    //! indices da matriz de neuronios
 
-    int distances[4];
+    int distances[DIMS];
 
     float normalization_factor;
 
@@ -230,20 +223,17 @@ void PlaceCellNetwork::normalizeRecurrentExcitatoryWeights()
         {
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
+                //! para cada elemento da matriz de pesos
+                //! preenche os indices em um vetor
+                index[0]=i;  index[1]=j;  index[2]=k;
+                //! Compute the distance between neurons in every dimension
+                for(int d=0;d<DIMS;d++)
                 {
-                    //! para cada elemento da matriz de pesos
-                    //! preenche os indices em um vetor
-                    index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
-
-                    //! Compute the distance between neurons in every dimension
-                    for(int d=0;d<4;d++)
-                    {
-                        distances[d] = std::min(index[d],parameters_.number_of_neurons_[d]-index[d]);
-                    }
-                    aux_neurons_(index)+= recurrent_excitatory_weights_(distances);
-
+                    distances[d] = std::min(index[d],parameters_.number_of_neurons_[d]-index[d]);
                 }
+                aux_neurons_(index)+= recurrent_excitatory_weights_(distances);
+
+
             }
         }
     }
@@ -390,10 +380,10 @@ void PlaceCellNetwork::publishExecutionTime()
 
 }
 
-void PlaceCellNetwork::rectifyIndeces(int a[4])
+void PlaceCellNetwork::rectifyIndeces(int a[DIMS])
 {
 
-    for(int i=0;i<4;i++)
+    for(int i=0;i<DIMS;i++)
     {
         a[i] = getWrapIndex(a[i],i);
     }
@@ -430,7 +420,7 @@ void PlaceCellNetwork::exciteNetwork()
     //! fill the aux_neurons_ matrix with zeros
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0);
 
-    int index[4],aindex[4];
+    int index[DIMS],aindex[DIMS];
     int i,j,k,l;    //! indices da matriz de neuronios
     int ai,aj,ak,al;    //! indices da matriz de pesos
 
@@ -446,46 +436,42 @@ void PlaceCellNetwork::exciteNetwork()
         {
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
+                //! para cada elemento da matriz de pesos
+                //! preenche os indices em um vetor
+                index[0]=i;  index[1]=j;  index[2]=k;
+                //                    if(neurons_(index) > 1e-4)
+                //                    {
+                //! para cada neuronio da matriz
+                for(ai=0;ai<parameters_.number_of_neurons_[0];ai++)
                 {
-                    //! para cada elemento da matriz de pesos
-                    //! preenche os indices em um vetor
-                    index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
-//                    if(neurons_(index) > 1e-4)
-//                    {
-                        //! para cada neuronio da matriz
-                        for(ai=0;ai<parameters_.number_of_neurons_[0];ai++)
+                    for(aj=0;aj<parameters_.number_of_neurons_[1];aj++)
+                    {
+                        for(ak=0;ak<parameters_.number_of_neurons_[2];ak++)
                         {
-                            for(aj=0;aj<parameters_.number_of_neurons_[1];aj++)
-                            {
-                                for(ak=0;ak<parameters_.number_of_neurons_[2];ak++)
-                                {
-                                    for(al=0;al<parameters_.number_of_neurons_[3];al++)
-                                    {
-                                        aindex[0]=ai;  aindex[1]=aj;  aindex[2]=ak;  aindex[3]=al;
+                            aindex[0]=ai;  aindex[1]=aj;  aindex[2]=ak;
 
-                                        //! Compute the distance between neurons in every dimension
-                                        for(int d=0;d<4;d++)
-                                        {
-                                            if(index[d]>aindex[d])
-                                            {
-                                                bigger = index[d];
-                                                less = aindex[d];
-                                            }
-                                            else
-                                            {
-                                                less = index[d];
-                                                bigger = aindex[d];
-                                            }
-                                            distances[d] = std::min(bigger-less,less+parameters_.number_of_neurons_[d]-bigger);
-                                        }
-                                        aux_neurons_(aindex)+= neurons_(index)*recurrent_excitatory_weights_(distances);
-                                    }
+                            //! Compute the distance between neurons in every dimension
+                            for(int d=0;d<DIMS;d++)
+                            {
+                                if(index[d]>aindex[d])
+                                {
+                                    bigger = index[d];
+                                    less = aindex[d];
                                 }
+                                else
+                                {
+                                    less = index[d];
+                                    bigger = aindex[d];
+                                }
+                                distances[d] = std::min(bigger-less,less+parameters_.number_of_neurons_[d]-bigger);
                             }
+                            aux_neurons_(aindex)+= neurons_(index)*recurrent_excitatory_weights_(distances);
+
                         }
-//                    }
+                    }
                 }
+                //                    }
+
             }
         }
     }
@@ -544,7 +530,7 @@ void PlaceCellNetwork::applyExternalInputOnNetwork()
 float PlaceCellNetwork::squaredDistance(int center[], int new_index[])
 {
     float distance = 0;
-    for(int i=0;i<3;i++)
+    for(int i=0;i<DIMS;i++)
     {
         distance += pow(center[i]-new_index[i],2);
     }
@@ -557,7 +543,7 @@ float PlaceCellNetwork::squaredDistance(int center[], int new_index[])
 float PlaceCellNetwork::euclideanDistance(int center[], int new_index[])
 {
     float distance = 0;
-    for(int i=0;i<3;i++)
+    for(int i=0;i<DIMS;i++)
     {
         distance += pow(center[i]-new_index[i],2);
     }
@@ -571,301 +557,222 @@ float PlaceCellNetwork::calculateMaxDistance()
 {
     float distance;
 
-    for(int i=0;i<4;i++)
+    for(int i=0;i<DIMS;i++)
     {
         distance += pow(parameters_.distance_between_neurons_[i],2);
     }
     return sqrt(distance);
 }
 
-void PlaceCellNetwork::integrateX(float delta_x,float delta_y,float delta_z,float delta_o)
+void PlaceCellNetwork::integrateX(double delta)
 {
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int index[4], aindex[4];
-    float num_cells;
-    int num_cells_int;
-    float num_cells_float;
+    int i,j,k;    //! indices da matriz de neuronios
+    int index[DIMS], aindex[DIMS];
+    double num_cells;
+    int integer_cells;
+    double decimal_cells;
     int direction;
     int cell_min,cell_max;
-    float delta;
 
-    std::vector<float> weights(parameters_.number_of_neurons_[0],0);
+    std::vector<double> weights(parameters_.number_of_neurons_[0],0);
 
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0.0f);
 
-    //! fixa as dimensoes y,z e yaw para deslocar na dimensao x
-    for(l=0;l<parameters_.number_of_neurons_[3];l++)
+
+    //! calcula o numero de celulas para deslocar e a direção do deslocamento
+    num_cells = delta/parameters_.distance_between_neurons_[0];
+
+    //! split the number into integer and decimal part
+    decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
+    direction = boost::math::sign(delta);
+
+
+    for(j=0;j<parameters_.number_of_neurons_[1];j++)
     {
-        //! Calcula a distancia de acordo com a rotação
-        delta = delta_x*cos(l*parameters_.number_of_neurons_[3]+delta_o/2.0) +
-                delta_y*sin(l*parameters_.number_of_neurons_[3]+delta_o/2.0);
-
-        //! calcula o numero de celulas para deslocar e a direção do deslocamento
-        num_cells = delta/parameters_.distance_between_neurons_[0];
-        get_integer_decimal_part(num_cells,num_cells_int,num_cells_float);
-        direction = sign(delta);
-
-        for(j=0;j<parameters_.number_of_neurons_[1];j++)
+        for(k=0;k<parameters_.number_of_neurons_[2];k++)
         {
-            for(k=0;k<parameters_.number_of_neurons_[2];k++)
+            //! zera o vetor de pesos
+            std::fill(weights.begin(),weights.end(),0.0);
+            for(i=0;i<parameters_.number_of_neurons_[0];i++)
             {
-                //! zera o vetor de pesos
-                std::fill(weights.begin(),weights.end(),0.0);
-                for(i=0;i<parameters_.number_of_neurons_[0];i++)
-                {
-                    //! calcula as duas celulas que serao influenciadas pela atividade da celula k
-                    cell_min = i + num_cells_int;               cell_min = getWrapIndex(cell_min,0);
-                    cell_max = cell_min + direction;            cell_max = getWrapIndex(cell_max,0);
+                //! calcula as duas celulas que serao influenciadas pela atividade da celula k
+                cell_min = i + integer_cells;               cell_min = getWrapIndex(cell_min,0);
+                cell_max = cell_min + direction;            cell_max = getWrapIndex(cell_max,0);
 
-                    index[0]=i;         index[1]=j;     index[2]=k;     index[3]=l;
-                    aindex[0]=cell_min; aindex[1]=j;    aindex[2]=k;    aindex[3]=l;
+                index[0]=i;         index[1]=j;     index[2]=k;
+                aindex[0]=cell_min; aindex[1]=j;    aindex[2]=k;
 
-                    aux_neurons_(aindex) +=(1-num_cells_float)*neurons_(index);
-                    weights[cell_min] += 1-num_cells_float;
+                aux_neurons_(aindex) +=(1-decimal_cells)*neurons_(index);
+                weights[cell_min] += 1-decimal_cells;
 
-                    aindex[0]=cell_max; aindex[1]=j;    aindex[2]=k;    aindex[3]=l;
+                aindex[0]=cell_max; aindex[1]=j;    aindex[2]=k;
 
-                    aux_neurons_(aindex) +=(num_cells_float)*neurons_(index);
-                    weights[cell_max] += num_cells_float;
+                aux_neurons_(aindex) +=(decimal_cells)*neurons_(index);
+                weights[cell_max] += decimal_cells;
 
-                }
-                //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
-                for(i=0;i<parameters_.number_of_neurons_[0];i++)
-                {
-                    aindex[0]=i;    aindex[1]=j;   aindex[2]=k;     aindex[3]=l;
-                    aux_neurons_(aindex) /= weights[i];
-                }
+            }
+            //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
+            for(i=0;i<parameters_.number_of_neurons_[0];i++)
+            {
+                aindex[0]=i;    aindex[1]=j;   aindex[2]=k;
+                aux_neurons_(aindex) /= weights[i];
             }
         }
     }
+
 
     neurons_ = aux_neurons_.clone();
 
 }
 
-void PlaceCellNetwork::integrateY(float delta_x,float delta_y,float delta_z,float delta_o)
+void PlaceCellNetwork::integrateY(double delta)
 {
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int index[4], aindex[4];
-    float num_cells;
-    int num_cells_int;
-    float num_cells_float;
+    int i,j,k;    //! indices da matriz de neuronios
+    int index[DIMS], aindex[DIMS];
+    double num_cells;
+    int integer_cells;
+    double decimal_cells;
     int direction;
     int cell_min,cell_max;
-    float delta;
 
-    std::vector<float> weights(parameters_.number_of_neurons_[1],0);
+    std::vector<double> weights(parameters_.number_of_neurons_[1],0);
 
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0.0f);
 
-    //! fixa as dimensoes y,z e yaw para deslocar na dimensao x
-    for(l=0;l<parameters_.number_of_neurons_[3];l++)
+
+    //! calcula o numero de celulas para deslocar e a direção do deslocamento
+    num_cells = delta/parameters_.distance_between_neurons_[1];
+
+    //! split the number into integer and decimal part
+    decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
+    direction = boost::math::sign(delta);
+
+    for(i=0;i<parameters_.number_of_neurons_[0];i++)
     {
-        //! Calcula a distancia de acordo com a rotação
-        delta = -delta_x*sin(l*parameters_.number_of_neurons_[3]+delta_o/2.0) +
-                delta_y*cos(l*parameters_.number_of_neurons_[3]+delta_o/2.0);
-
-        //! calcula o numero de celulas para deslocar e a direção do deslocamento
-        num_cells = delta/parameters_.distance_between_neurons_[1];
-        get_integer_decimal_part(num_cells,num_cells_int,num_cells_float);
-        direction = sign(delta);
-
-        for(i=0;i<parameters_.number_of_neurons_[0];i++)
+        for(k=0;k<parameters_.number_of_neurons_[2];k++)
         {
-            for(k=0;k<parameters_.number_of_neurons_[2];k++)
+            //! zera o vetor de pesos
+            std::fill(weights.begin(),weights.end(),0.0);
+            for(j=0;j<parameters_.number_of_neurons_[1];j++)
             {
-                //! zera o vetor de pesos
-                std::fill(weights.begin(),weights.end(),0.0);
-                for(j=0;j<parameters_.number_of_neurons_[1];j++)
-                {
-                    //! calcula as duas celulas que serao influenciadas pela atividade da celula k
-                    cell_min = j + num_cells_int;           cell_min = getWrapIndex(cell_min,1);
-                    cell_max = cell_min + direction;        cell_max = getWrapIndex(cell_max,1);
+                //! calcula as duas celulas que serao influenciadas pela atividade da celula k
+                cell_min = j + integer_cells;               cell_min = getWrapIndex(cell_min,1);
+                cell_max = cell_min + direction;            cell_max = getWrapIndex(cell_max,1);
 
-                    index[0]=i;     index[1]=j;         index[2]=k;     index[3]=l;
-                    aindex[0]=i;    aindex[1]=cell_min; aindex[2]=k;    aindex[3]=l;
 
-                    aux_neurons_(aindex) +=(1-num_cells_float)*neurons_(index);
-                    weights[cell_min] += 1-num_cells_float;
+                index[0]=i;     index[1]=j;         index[2]=k;
+                aindex[0]=i;    aindex[1]=cell_min; aindex[2]=k;
 
-                    aindex[0]=i;    aindex[1]=cell_max; aindex[2]=k;    aindex[3]=l;
+                aux_neurons_(aindex) +=(1-decimal_cells)*neurons_(index);
+                weights[cell_min] += 1-decimal_cells;
 
-                    aux_neurons_(aindex) +=(num_cells_float)*neurons_(index);
-                    weights[cell_max] += num_cells_float;
+                aindex[0]=i;    aindex[1]=cell_max; aindex[2]=k;
 
-                }
-                //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
-                for(j=0;j<parameters_.number_of_neurons_[1];j++)
-                {
-                    aindex[0]=i;    aindex[1]=j;   aindex[2]=k;     aindex[3]=l;
-                    aux_neurons_(aindex) /= weights[j];
-                }
+                aux_neurons_(aindex) +=(decimal_cells)*neurons_(index);
+                weights[cell_max] += decimal_cells;
+
+            }
+            //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
+            for(j=0;j<parameters_.number_of_neurons_[1];j++)
+            {
+                aindex[0]=i;    aindex[1]=j;   aindex[2]=k;
+                aux_neurons_(aindex) /= weights[j];
             }
         }
     }
+
 
     neurons_ = aux_neurons_.clone();
 
 }
 
-void PlaceCellNetwork::integrateZ(float delta_x, float delta_y, float delta_z, float delta_o)
+void PlaceCellNetwork::integrateZ(double  delta)
 {
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int index[4], aindex[4];
-    float num_cells;
-    int num_cells_int;
-    float num_cells_float;
+    int i,j,k;    //! indices da matriz de neuronios
+    int index[DIMS], aindex[DIMS];
+    double num_cells;
+    int integer_cells;
+    double decimal_cells;
     int direction;
     int cell_min,cell_max;
-    float delta;
 
-    std::vector<float> weights(parameters_.number_of_neurons_[2],0);
+    std::vector<double> weights(parameters_.number_of_neurons_[2],0);
 
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0.0f);
 
-    delta = delta_z;
     //! calcula o numero de celulas para deslocar e a direção do deslocamento
     num_cells = delta/parameters_.distance_between_neurons_[2];
-    get_integer_decimal_part(num_cells,num_cells_int,num_cells_float);
-    direction = sign(delta);
 
-    ROS_DEBUG_STREAM_NAMED("pc","delta_z = " << delta_z << " cells = " << num_cells_int << " " << num_cells_float);
+    //! split the number into integer and decimal part
+    decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
+    direction = boost::math::sign(delta);
 
-    for(i=0;i<parameters_.number_of_neurons_[0];i++)
-    {
-        for(j=0;j<parameters_.number_of_neurons_[1];j++)
-        {
-            for(l=0;l<parameters_.number_of_neurons_[3];l++)
-            {
-                //! zera o vetor de pesos
-                std::fill(weights.begin(),weights.end(),0.0);
-                for(k=0;k<parameters_.number_of_neurons_[2];k++)
-                {
-                    //! calcula as duas celulas que serao influenciadas pela atividade da celula k
-                    cell_min = k + num_cells_int;       cell_min = getWrapIndex(cell_min,2);
-                    cell_max = cell_min + direction;    cell_max = getWrapIndex(cell_max,2);
-
-                    index[0]=i;     index[1]=j;     index[2]=k;         index[3]=l;
-                    aindex[0]=i;    aindex[1]=j;    aindex[2]=cell_min; aindex[3]=l;
-
-                    aux_neurons_(aindex) +=(1-num_cells_float)*neurons_(index);
-                    weights[cell_min] += 1-num_cells_float;
-
-                    aindex[0]=i;    aindex[1]=j;    aindex[2]=cell_max; aindex[3]=l;
-
-                    aux_neurons_(aindex) +=(num_cells_float)*neurons_(index);
-                    weights[cell_max] += num_cells_float;
-
-                }
-                //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
-                for(k=0;k<parameters_.number_of_neurons_[2];k++)
-                {
-                    aindex[0]=i;    aindex[1]=j;   aindex[2]=k;     aindex[3]=l;
-                    aux_neurons_(aindex) /= weights[k];
-                }
-            }
-        }
-    }
-
-    neurons_ = aux_neurons_.clone();
-}
-
-void PlaceCellNetwork::integrateYaw(float delta_x, float delta_y, float delta_z, float delta_o)
-{
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int index[4], aindex[4];
-    float num_cells;
-    int num_cells_int;
-    float num_cells_float;
-    int direction;
-    int cell_min,cell_max;
-    float delta;
-
-    std::vector<float> weights(parameters_.number_of_neurons_[2],0);
-
-    std::fill(aux_neurons_.begin(),aux_neurons_.end(),0.0f);
-
-    delta = delta_o;
-    //! calcula o numero de celulas para deslocar e a direção do deslocamento
-    num_cells = delta/parameters_.distance_between_neurons_[3];
-    get_integer_decimal_part(num_cells,num_cells_int,num_cells_float);
-    direction = sign(delta);
 
     for(i=0;i<parameters_.number_of_neurons_[0];i++)
     {
         for(j=0;j<parameters_.number_of_neurons_[1];j++)
         {
+            //! zera o vetor de pesos
+            std::fill(weights.begin(),weights.end(),0.0);
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
-                //! zera o vetor de pesos
-                std::fill(weights.begin(),weights.end(),0.0);
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                {
-                    //! calcula as duas celulas que serao influenciadas pela atividade da celula k
-                    cell_min = l + num_cells_int;           cell_min = getWrapIndex(cell_min,3);
-                    cell_max = cell_min + direction;        cell_max = getWrapIndex(cell_max,3);
+                //! calcula as duas celulas que serao influenciadas pela atividade da celula k
+                cell_min = k + integer_cells;       cell_min = getWrapIndex(cell_min,2);
+                cell_max = cell_min + direction;    cell_max = getWrapIndex(cell_max,2);
 
-                    index[0]=i;     index[1]=j;     index[2]=k;     index[3]=l;
-                    aindex[0]=i;    aindex[1]=j;    aindex[2]=k;    aindex[3]=cell_min;
+                index[0]=i;     index[1]=j;     index[2]=k;
+                aindex[0]=i;    aindex[1]=j;    aindex[2]=cell_min;
 
-                    aux_neurons_(aindex) +=(1-num_cells_float)*neurons_(index);
-                    weights[cell_min] += 1-num_cells_float;
+                aux_neurons_(aindex) +=(1-decimal_cells)*neurons_(index);
+                weights[cell_min] += 1-decimal_cells;
 
-                    aindex[0]=i;    aindex[1]=j;    aindex[2]=k;    aindex[3]=cell_max;
+                aindex[0]=i;    aindex[1]=j;    aindex[2]=cell_max;
 
-                    aux_neurons_(aindex) +=(num_cells_float)*neurons_(index);
-                    weights[cell_max] += num_cells_float;
+                aux_neurons_(aindex) +=(decimal_cells)*neurons_(index);
+                weights[cell_max] += decimal_cells;
 
-                }
-                //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                {
-                    aindex[0]=i;    aindex[1]=j;   aindex[2]=k;     aindex[3]=l;
-                    aux_neurons_(aindex) /= weights[l];
-                }
             }
+            //! Agora deve-se dividir cada neuronio atualizado pelo pelo associado `a ele
+            for(k=0;k<parameters_.number_of_neurons_[2];k++)
+            {
+                aindex[0]=i;    aindex[1]=j;   aindex[2]=k;     ;
+                aux_neurons_(aindex) /= weights[k];
+            }
+
         }
     }
 
     neurons_ = aux_neurons_.clone();
-
 }
-
 
 /*!
  * \brief Path integration function
  *
  *Copia a atividade neuronal de uma celula para outra(s), respeitando a orientaçao da celula
  *
- *Calcula o shift necessário em z
- *Em cada camada yaw, calcula a rotação de acordo com a metade da rotação realizada + a orientação da célula
- *e a shift necessário na dimensão yaw
- *Em cada plano x, y  calcula o shift em cada célula
  */
 void PlaceCellNetwork::applyPathIntegrationOnNetwork()
 {
 
-    float delta_x,delta_y,delta_z,delta_o;
+    float delta_x,delta_y,delta_z;
 
     //! adquire a distancia percorrida em x,y,z e yaw
     delta_x = robot_pose_pc_.response.traveled_distance_.x;
     delta_y = robot_pose_pc_.response.traveled_distance_.y;
     delta_z = robot_pose_pc_.response.traveled_distance_.z;
-    delta_o = 0;
 
-    ROS_DEBUG_STREAM_NAMED("pc","Deltas = [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", " << std::setw(6) << delta_z << ", "<< std::setw(6) << delta_o << " ]" );
+    ROS_DEBUG_STREAM_NAMED("pc","Deltas = [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", " << std::setw(6) << delta_z << " ]" );
 
-    integrateZ(delta_x,delta_y,delta_z,delta_o);
-    integrateX(delta_x,delta_y,delta_z,delta_o);
-    integrateY(delta_x,delta_y,delta_z,delta_o);
-    //integrateYaw(delta_x,delta_y,delta_z,delta_o);
+    integrateX(delta_x);
+    integrateY(delta_y);
+    integrateZ(delta_z);
 
 }
 
 //! Função responsável por fazer um aprendizado hebbiano
 void PlaceCellNetwork::learnExternalConnections()
 {
-    int i,j,k,l;    //! indices da matriz de neuronios
+    int i,j,k;    //! indices da matriz de neuronios
     int index[4];
     float weight;
 
@@ -883,15 +790,14 @@ void PlaceCellNetwork::learnExternalConnections()
                 {
                     for(k=0;k<parameters_.number_of_neurons_[2];k++)
                     {
-                        for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                        {
-                            index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
-                            //                    delta_weight = learning_constant_* neurons_(index);
-                            //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
-                            local_view_synaptic_weights_[lvc.id_](index) =
-                                    std::max(local_view_synaptic_weights_[lvc.id_](index),
-                                    learning_constant_ * lvc.rate_ * neurons_(index));
-                        }
+
+                        index[0]=i;  index[1]=j;  index[2]=k;
+                        //                    delta_weight = learning_constant_* neurons_(index);
+                        //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
+                        local_view_synaptic_weights_[lvc.id_](index) =
+                                std::max(local_view_synaptic_weights_[lvc.id_](index),
+                                learning_constant_ * lvc.rate_ * neurons_(index));
+
                     }
                 }
             }
@@ -906,15 +812,14 @@ void PlaceCellNetwork::learnExternalConnections()
             {
                 for(k=0;k<parameters_.number_of_neurons_[2];k++)
                 {
-                    for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                    {
-                        index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
+
+                        index[0]=i;  index[1]=j;  index[2]=k;
                         //                    delta_weight = learning_constant_* neurons_(index);
                         //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
                         local_view_synaptic_weights_[most_active_lv_cell_](index) =
                                 std::max(local_view_synaptic_weights_[most_active_lv_cell_](index),
                                 learning_constant_ * neurons_(index));
-                    }
+
                 }
             }
         }
@@ -956,45 +861,33 @@ void PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
         {
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                {
-                    index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
+
+                    index[0]=i;  index[1]=j;  index[2]=k;
 
                     if(neurons_(index) > max_activity)
                     {
                         max_activity = neurons_(index);
-                        std::copy(index,index+4,active_neuron.begin());
+                        std::copy(index,index+DIMS,active_neuron.begin());
                     }
-                }
+
             }
         }
 
 
     }
 
-    ROS_DEBUG_STREAM_NAMED("pc","max activity = " << max_activity << " or " << *std::max_element(neurons_.begin(),neurons_.end()) << "neuron = " << active_neuron[0] << " " <<  active_neuron[1] << " " << active_neuron[2] << " " << active_neuron[3] );
+    ROS_DEBUG_STREAM_NAMED("pc","max activity = " << max_activity << " or " << *std::max_element(neurons_.begin(),neurons_.end()) << "neuron = " << active_neuron[0] << " " <<  active_neuron[1] << " " << active_neuron[2]  );
 
 }
 
-
-
-int sign(float value)
-{
-    return(value < 0 ? -1: 1);
-}
-
-void get_integer_decimal_part(float value, int &integer,float &decimal)
-{
-    decimal = static_cast<float>(fabs(boost::math::modf(value,&integer)));
-}
 
 
 //! ###################### ROS MESSAGES ################################
 void PlaceCellNetwork::publishNetworkActivityMessage()
 {
     visualization_msgs::Marker message;
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int index[4];
+    int i,j,k;    //! indices da matriz de neuronios
+    int index[DIMS];
 
     float scale = 0.25;
     Color color;
@@ -1043,9 +936,8 @@ void PlaceCellNetwork::publishNetworkActivityMessage()
         {
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
-                for(l=0;l<parameters_.number_of_neurons_[3];l++)
-                {
-                    index[0]=i;  index[1]=j;  index[2]=k;  index[3]=l;
+
+                    index[0]=i;  index[1]=j;  index[2]=k;
 
                     //! set point position
                     message.points[point_index].x = i;
@@ -1062,7 +954,7 @@ void PlaceCellNetwork::publishNetworkActivityMessage()
 
                     point_index++;
 
-                }
+
             }
         }
     }

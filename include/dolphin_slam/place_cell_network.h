@@ -83,10 +83,9 @@ private:
     void normalizeNetworkActivity();
     void getActiveNeuron(std::vector<int> &active_neuron);
 
-    void integrateX(float delta_x, float delta_y, float delta_z, float delta_o);
-    void integrateY(float delta_x, float delta_y, float delta_z, float delta_o);
-    void integrateZ(float delta_x, float delta_y, float delta_z, float delta_o);
-    void integrateYaw(float delta_x, float delta_y, float delta_z, float delta_o);
+    void integrateX(double delta);
+    void integrateY(double delta);
+    void integrateZ(double delta);
 
     //! Função para alocar a matriz de neuronios
     void createNeurons();
@@ -162,14 +161,10 @@ private:
 
     TimeMonitor time_monitor_;
 
-
-    friend class PoseCellMessages;
+    static const int DIMS = 3;
 
 };
 
-
-int sign(float value);
-void get_integer_decimal_part(float value, int &integer,float &decimal);
 
 
 
