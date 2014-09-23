@@ -110,7 +110,7 @@ int main(int argc, char **argv){
 
     cout << "Trainning complete" << endl;
 
-
+	bag_of_features.sortVocab();
     string filename = parameters.bof_vocabulary_path_ + string("/") +
             string("_s") + boost::lexical_cast<string>(parameters.surf_threshold_) +
             string("_g") + boost::lexical_cast<string>(parameters.bof_groups_) + string(".xml");

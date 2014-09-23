@@ -1,6 +1,6 @@
 surf_threshold: 100
 bof_groups: 100
-frames_to_jump: 0
-bof_vocabulary_path: '/Codigos/indigo_ws/src/dolphin_slam/bow_vocabularies/'
-image_topic: '/image_raw'
-bag_file: '/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/tanque_girona.bag'
+frames_to_jump: 1
+bof_vocabulary_path: '/home/ballester/catkin_ws/src/dolphin_slam/bow_vocabularies/'
+image_topic: '/image'
+bag_file: '/home/ballester/datasets/girona/girona.bag'

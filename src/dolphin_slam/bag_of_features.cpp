@@ -174,6 +174,33 @@ void BoF::readVocabulary(string path)
     bofDE_->setVocabulary(vocabulary_);
 }
 
+void BoF::sortVocab()
+{
+	
+	std::vector<double> ordenador;
+	for (int i = 0; i<vocabulary_.rows; i++)
+	{
+		for (int j = 0; j < vocabulary_.cols; j++)
+		{
+			ordenador.push_back(vocabulary_.at<float>(i,j));
+		}
+	}
+	
+	std::sort(ordenador.begin(), ordenador.end());
+	
+	int iterations = 0;
+	for (int i = 0; i<vocabulary_.rows; i++)
+	{
+		for (int j = 0; j < vocabulary_.cols; j++)
+		{
+			vocabulary_.at<float>(i,j) = ordenador[iterations];
+			iterations++;
+		}
+	}
+	
+  
+}
+
 //These write and read functions must be defined for the serialization in FileStorage to work
 void write(cv::FileStorage& fs, const std::string&, const BoF& bof)
 {
@@ -186,3 +213,4 @@ void read(const cv::FileNode& node, BoF& bof, const BoF& default_value)
 }
 
 } // namespace
+

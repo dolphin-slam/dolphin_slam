@@ -38,11 +38,13 @@ public:
     std::vector<cv::KeyPoint>  getKeypoints();
     int getGroups();
     void setGroups(int groups);
+    void sortVocab();
 
 private:
     int surf_threshold_;
     int groups_;
     cv::Mat vocabulary_;
+    cv::Mat new_vocabulary_;
     cv::Mat histogram_;
 
     vector<cv::KeyPoint> keypts_;
