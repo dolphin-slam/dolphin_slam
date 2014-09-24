@@ -3,6 +3,16 @@
 using std::cout;
 using std::endl;
 
+int sign(double delta)
+{
+	if (delta == 0)
+		return 0;
+	if (delta > 0)
+		return 1;
+	if (delta < 0)
+		return -1;
+}
+
 namespace dolphin_slam
 {
 
@@ -584,7 +594,7 @@ void PlaceCellNetwork::integrateX(double delta)
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
-    direction = boost::math::sign(delta);
+    direction = sign(delta);
 
 
     for(j=0;j<parameters_.number_of_neurons_[1];j++)
@@ -645,7 +655,7 @@ void PlaceCellNetwork::integrateY(double delta)
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
-    direction = boost::math::sign(delta);
+    direction = sign(delta);
 
     for(i=0;i<parameters_.number_of_neurons_[0];i++)
     {
@@ -705,7 +715,7 @@ void PlaceCellNetwork::integrateZ(double  delta)
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
-    direction = boost::math::sign(delta);
+    direction = sign(delta);
 
 
     for(i=0;i<parameters_.number_of_neurons_[0];i++)

@@ -177,7 +177,7 @@ void BoF::readVocabulary(string path)
 void BoF::sortVocab()
 {
 	
-	std::vector<double> ordenador;
+	/*std::vector<double> ordenador;
 	for (int i = 0; i<vocabulary_.rows; i++)
 	{
 		for (int j = 0; j < vocabulary_.cols; j++)
@@ -196,7 +196,93 @@ void BoF::sortVocab()
 			vocabulary_.at<float>(i,j) = ordenador[iterations];
 			iterations++;
 		}
-	}
+	}*/
+	    //cout << "Number of keypoints = " << dictionary.rows << endl;
+ 
+    new_vocabulary_.create(vocabulary_.size(),vocabulary_.type());
+ 
+    int line1, line2;
+ 
+    float dist, max_dist = 0;
+ 
+    for(int i=0;i<vocabulary_.rows;i++)
+    {
+        for(int j=i+1;j<vocabulary_.rows;j++)
+        {
+            dist = cv::norm(vocabulary_.row(i),vocabulary_.row(j));
+            if(dist > max_dist)
+            {
+                line1 = i;
+                line2 = j;
+                max_dist = dist;
+            }
+        }
+        //cout << endl;
+    }
+ 
+//    cout << "max_dist = " << max_dist << endl;
+//    cout << "line1 = " << line1 << endl;
+//    cout << "line2 = " << line2 << endl;
+ 
+    //! ja tenho os dois descritores mais distantes.
+    std::vector<double> distance(vocabulary_.rows);
+    std::vector<double> new_distance(vocabulary_.rows);
+    std::vector<bool> alread_on_list(vocabulary_.rows,false);
+ 
+    for(int i=0;i<distance.size();i++)
+    {
+        if(i == line1)
+        {
+            distance[i] = 0;
+            alread_on_list[i] = true;
+        }
+        else if(i == line2)
+        {
+            distance[i] = max_dist;
+            alread_on_list[i] = true;
+        }
+        else
+        {
+            distance[i] = cv::norm(vocabulary_.row(line1),vocabulary_.row(i));
+        }
+ 
+        //cout << distance[i] << endl;
+    }
+ 
+ 
+    float menor_distancia;
+//    new_dictionary.row(0) = dictionary.row(line1);
+    //cout << "copy line " << line1 << " to 0"  << endl;
+    //copyLine(dictionary,line1,new_dictionary,0);
+    vocabulary_.row(line1).copyTo(new_vocabulary_.row(0));
+    new_distance[0] = distance[line1];
+    int line;
+    for(int i=1;i<new_vocabulary_.rows-1;i++)
+    {
+        menor_distancia = numeric_limits<float>::infinity();
+        for(int j=0;j<vocabulary_.rows;j++)
+        {
+            if(!alread_on_list[j])
+            {
+                if(menor_distancia > distance[j])
+                {
+                    menor_distancia = distance[j];
+                    line = j;
+                }
+            }
+        }
+        //cout << "copy line " << line << " to " << i << endl;
+        vocabulary_.row(line).copyTo(new_vocabulary_.row(i));
+        //copyLine(dictionary,line,new_dictionary,i);
+        new_distance[i] = distance[line];
+        alread_on_list[line] = true;
+    }
+    //cout << "copy line " << line2 << " to " << new_dictionary.rows-1 << endl;
+    //copyLine(dictionary,line2,new_dictionary,new_dictionary.rows-1);
+    vocabulary_.row(line2).copyTo(new_vocabulary_.row(new_distance.size()-1));
+    new_distance[new_distance.size()-1] = distance[line2];
+ 
+ 	vocabulary_ = new_vocabulary_;
 	
   
 }
