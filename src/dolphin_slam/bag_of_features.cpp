@@ -18,9 +18,9 @@ BoF::BoF(int number_of_groups, int hessian_threshold)
     descriptor_extractor_ = new cv::BOWImgDescriptorExtractor(surf_,cv::DescriptorMatcher::create("FlannBased"));
 
     trainer_ = new cv::BOWKMeansTrainer(groups_,
-                                              cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
-                                              1,
-                                              cv::KMEANS_PP_CENTERS);
+                                        cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS,50,0.001),
+                                        5,
+                                        cv::KMEANS_PP_CENTERS);
 }
 
 /*!
@@ -89,8 +89,8 @@ void BoF::setGroups(int groups)
     groups_ = groups;
 
     trainer_ = new cv::BOWKMeansTrainer(groups_,
-                                              cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
-                                              1,
+                                              cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS,50,0.001),
+                                              5,
                                               cv::KMEANS_PP_CENTERS);
 }
 

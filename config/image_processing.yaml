@@ -4,4 +4,4 @@ bof_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/bof_voc
 image_topic: '/image'
 image_transport: 'raw'
 output_topic: '/image_histogram'
-frames_to_jump: 5
+frames_to_jump: 0

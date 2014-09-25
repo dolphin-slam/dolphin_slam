@@ -1,6 +1,6 @@
 <launch>
 
-    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/Datasets/Girona/girona.bag -q -d 2 -r 2" required="true"/>
+    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/girona_rotated.bag" required="true"/>
     
 	<node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
 		<rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />
@@ -28,7 +28,7 @@
     <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
     <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="true"/>
     <node name="image_view" pkg="image_view" type="image_view" args="image:=/image"  respawn="true"/>
-    <!-- node name="template_view_node" pkg="template_view" type="template_view_node"/ -->
+    <node name="template_view_node" pkg="template_view" type="template_view_node"/>
 
 
 </launch>
