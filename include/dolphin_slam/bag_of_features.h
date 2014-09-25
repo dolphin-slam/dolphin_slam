@@ -19,7 +19,7 @@ namespace dolphin_slam
 class BoF
 {
 public:
-    BoF(int number_of_groups = 100,int surf_threshold = 100);
+    BoF(int number_of_groups = 100, int hessian_threshold = 100);
     ~BoF();
 
     void readVocabulary(string path);
@@ -38,10 +38,10 @@ public:
     std::vector<cv::KeyPoint>  getKeypoints();
     int getGroups();
     void setGroups(int groups);
-    void sortVocab();
+    void sortVocabulary();
 
 private:
-    int surf_threshold_;
+    int hessian_threshold_;
     int groups_;
     cv::Mat vocabulary_;
     cv::Mat new_vocabulary_;
@@ -49,13 +49,10 @@ private:
 
     vector<cv::KeyPoint> keypts_;
 
-    cv::SurfFeatureDetector *detector_;
-    cv::BOWImgDescriptorExtractor *bofDE_;
-    cv::Ptr<cv::DescriptorExtractor> extractor_;
-    cv::Ptr<cv::DescriptorMatcher> matcher_;
+    cv::Ptr<cv::SURF> surf_;
 
-    cv::BOWKMeansTrainer *trainer_;
-
+    cv::Ptr<cv::BOWImgDescriptorExtractor> descriptor_extractor_;
+    cv::Ptr<cv::BOWKMeansTrainer> trainer_;
 
 };
 

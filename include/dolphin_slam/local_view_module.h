@@ -13,7 +13,6 @@
 
 #include <opencv/cv.h>
 
-
 #include <string>
 
 #include <boost/foreach.hpp>
@@ -79,10 +78,8 @@ private:
     ros::Publisher view_template_publisher_;
     ros::Publisher execution_time_publisher_;
 
-    std::string image_topic_;
 
-    std::string image_transport_;
-
+    std::ofstream log_file_;
 //    std::ofstream view_template_file_;
 //    std::ofstream local_view_file_;
 

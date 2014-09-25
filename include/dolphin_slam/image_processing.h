@@ -10,6 +10,8 @@
 #include <dolphin_slam/ImageHistogram.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <fstream>
+
 
 using namespace std;
 
@@ -27,12 +29,13 @@ namespace dolphin_slam
 
 struct ImageProcessingParameters
 {
-    int surf_threshold_;
+    int surf_threshold_; //! quanto menor o threshold, maior o número de keypoints encontrados.
     int bof_groups_;
     string bof_vocabulary_path_;
     string image_topic_;
     string image_transport_;
     string output_topic_;
+    int frames_to_jump_;
 };
 
 
@@ -40,6 +43,7 @@ class ImageProcessing
 {
 public:
     ImageProcessing();
+    ~ImageProcessing();
 
     void imageCallback(const sensor_msgs::ImageConstPtr &image);
 
@@ -56,6 +60,8 @@ private:
     void publishOutput();
 
     bool update();
+
+    std::ofstream log_file_;
 
     BoF bag_of_features_;
 

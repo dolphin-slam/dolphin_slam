@@ -6,24 +6,16 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-BoF::BoF(int number_of_groups, int surf_threshold)
+BoF::BoF(int number_of_groups, int hessian_threshold)
 {
 
     groups_  = number_of_groups;
-    surf_threshold_ = surf_threshold;
+    hessian_threshold_ = hessian_threshold;
 
-    //! create FlannBased matcher
-    matcher_ = cv::DescriptorMatcher::create("FlannBased");
-
-    //! create SURF detector
-    detector_ = new cv::SurfFeatureDetector(surf_threshold_);
-
-    //! create SURF extractor
-    extractor_ = cv::DescriptorExtractor::create("SURF");
-
+    surf_ = new cv::SURF(hessian_threshold_);
 
     //! create BoW Image Descriptor Extractor
-    bofDE_ = new cv::BOWImgDescriptorExtractor(extractor_,matcher_);
+    descriptor_extractor_ = new cv::BOWImgDescriptorExtractor(surf_,cv::DescriptorMatcher::create("FlannBased"));
 
     trainer_ = new cv::BOWKMeansTrainer(groups_,
                                               cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
@@ -36,9 +28,8 @@ BoF::BoF(int number_of_groups, int surf_threshold)
  */
 BoF::~BoF()
 {
-    //! Realease Pointers
-    delete detector_;
-    delete bofDE_;
+    //! The cv::Ptr release the memory automatically.
+
 }
 
 /*!
@@ -48,11 +39,10 @@ BoF::~BoF()
 void BoF::setThreshold(int threshold)
 {
     //! Set threshold value
-    surf_threshold_ = threshold;
+    hessian_threshold_ = threshold;
 
-    delete detector_;
-    //! Set threshold value at the SURF detector
-    detector_ = new cv::SurfFeatureDetector(surf_threshold_);
+    surf_ = new cv::SURF(hessian_threshold_);
+
 }
 
 /*!
@@ -62,21 +52,22 @@ void BoF::setThreshold(int threshold)
 int BoF::getThreshold()
 {
     //! Return threshold value
-    return surf_threshold_;
+    return hessian_threshold_;
 }
 
 void BoF::addTrainingImage(cv::Mat image)
 {
-    cv::Mat features;
+    cv::Mat descriptors;
+    std::vector<cv::KeyPoint> keypoints;
 
-    //! Detect SURF Features in the image
-    detector_->detect(image, keypts_);
-
+    //! Detect SURF keypoints in the image
+    surf_->detect(image,keypoints);
     //! Compute SURF descriptors
-    extractor_->compute(image, keypts_, features);
-
+    surf_->compute(image,keypoints,descriptors);
     //! Add descriptors to training set
-    trainer_->add(features);
+
+    trainer_->add(descriptors);
+
 }
 
 void BoF::train()
@@ -97,7 +88,6 @@ void BoF::setGroups(int groups)
 {
     groups_ = groups;
 
-    delete trainer_;
     trainer_ = new cv::BOWKMeansTrainer(groups_,
                                               cv::TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0),
                                               1,
@@ -112,15 +102,17 @@ void BoF::setGroups(int groups)
  */
 cv::Mat BoF::createHistogram(const cv::Mat &image)
 {
-    //! Detect SURF Features in the image
-    detector_->detect(image, keypts_);
+    cv::Mat histogram;
+    std::vector<cv::KeyPoint> keypoints;
 
+    //! Detect SURF Features in the image
+    surf_->detect(image, keypoints);
 
     //! Create the Image's Histogram
-    bofDE_->compute(image,keypts_,histogram_);
+    descriptor_extractor_->compute(image,keypoints,histogram);
 
     //! Return histogram
-    return histogram_;
+    return histogram;
 }
 
 //! Write serialization for this class
@@ -128,7 +120,7 @@ void BoF::write(cv::FileStorage& fs) const{
 
     fs << "{";
     fs << "groups" << groups_;
-    fs << "threshold" << surf_threshold_;
+    fs << "hessian_threshold" << hessian_threshold_;
     fs << "vocabulary" << vocabulary_;
     fs << "}";
 
@@ -137,68 +129,20 @@ void BoF::write(cv::FileStorage& fs) const{
 void BoF::read(const cv::FileNode &node)
 {
     node["groups"] >> groups_;
+    setGroups(groups_);
 
-    node["threshold"] >> surf_threshold_;
-    setThreshold(surf_threshold_); //! Call to adjust surf parameters
+    node["hessian_threshold"] >> hessian_threshold_;
+    setThreshold(hessian_threshold_); //! Call to adjust surf parameters
 
     node["vocabulary"] >> vocabulary_;
-    bofDE_->setVocabulary(vocabulary_);
+    descriptor_extractor_->setVocabulary(vocabulary_);
 
 }
 
-/*!
- * \brief Read the BoW's Dictionary
- * \param Path to dictionary : const char*
- */
-void BoF::readVocabulary(string path)
-{
-    //! Create FileStorage
-    cv::FileStorage fs;
 
-    //! Open File especified in the path
-    if(fs.open(path, cv::FileStorage::READ))
-    {
-        ROS_DEBUG_STREAM("File sucessful opened: " << path);
-    }
-    else
-    {
-        ROS_WARN_STREAM("Could not open the file: " << path);
-    }
-
-    //! Read the dictionary from File
-    fs["Dicionario"] >> vocabulary_;
-    //! Release the File
-    fs.release();
-
-    //! Set BoW Vocabulary
-    bofDE_->setVocabulary(vocabulary_);
-}
-
-void BoF::sortVocab()
+void BoF::sortVocabulary()
 {
 	
-	/*std::vector<double> ordenador;
-	for (int i = 0; i<vocabulary_.rows; i++)
-	{
-		for (int j = 0; j < vocabulary_.cols; j++)
-		{
-			ordenador.push_back(vocabulary_.at<float>(i,j));
-		}
-	}
-	
-	std::sort(ordenador.begin(), ordenador.end());
-	
-	int iterations = 0;
-	for (int i = 0; i<vocabulary_.rows; i++)
-	{
-		for (int j = 0; j < vocabulary_.cols; j++)
-		{
-			vocabulary_.at<float>(i,j) = ordenador[iterations];
-			iterations++;
-		}
-	}*/
-	    //cout << "Number of keypoints = " << dictionary.rows << endl;
- 
     new_vocabulary_.create(vocabulary_.size(),vocabulary_.type());
  
     int line1, line2;
@@ -217,13 +161,8 @@ void BoF::sortVocab()
                 max_dist = dist;
             }
         }
-        //cout << endl;
     }
- 
-//    cout << "max_dist = " << max_dist << endl;
-//    cout << "line1 = " << line1 << endl;
-//    cout << "line2 = " << line2 << endl;
- 
+  
     //! ja tenho os dois descritores mais distantes.
     std::vector<double> distance(vocabulary_.rows);
     std::vector<double> new_distance(vocabulary_.rows);
@@ -245,15 +184,11 @@ void BoF::sortVocab()
         {
             distance[i] = cv::norm(vocabulary_.row(line1),vocabulary_.row(i));
         }
- 
-        //cout << distance[i] << endl;
-    }
+     }
  
  
     float menor_distancia;
-//    new_dictionary.row(0) = dictionary.row(line1);
-    //cout << "copy line " << line1 << " to 0"  << endl;
-    //copyLine(dictionary,line1,new_dictionary,0);
+
     vocabulary_.row(line1).copyTo(new_vocabulary_.row(0));
     new_distance[0] = distance[line1];
     int line;
@@ -271,14 +206,10 @@ void BoF::sortVocab()
                 }
             }
         }
-        //cout << "copy line " << line << " to " << i << endl;
         vocabulary_.row(line).copyTo(new_vocabulary_.row(i));
-        //copyLine(dictionary,line,new_dictionary,i);
         new_distance[i] = distance[line];
         alread_on_list[line] = true;
     }
-    //cout << "copy line " << line2 << " to " << new_dictionary.rows-1 << endl;
-    //copyLine(dictionary,line2,new_dictionary,new_dictionary.rows-1);
     vocabulary_.row(line2).copyTo(new_vocabulary_.row(new_distance.size()-1));
     new_distance[new_distance.size()-1] = distance[line2];
  

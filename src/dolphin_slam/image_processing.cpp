@@ -9,11 +9,21 @@ ImageProcessing::ImageProcessing()
 
     loadParameters();
 
+    initBoF();
+
     createROSSubscribers();
 
     createROSPublishers();
 
+    log_file_.open("image_processing.log");
+
 }
+
+ImageProcessing::~ImageProcessing()
+{
+    log_file_.close();
+}
+
 
 void ImageProcessing::loadParameters()
 {
@@ -36,6 +46,10 @@ void ImageProcessing::loadParameters()
 
     //! string output_topic;
     private_nh_.param<string>("output_topic",parameters_.output_topic_,"/image_histogram");
+
+    //! int frames_to_jump;
+    private_nh_.param<int>("frames_to_jump",parameters_.frames_to_jump_,0);
+
 
 }
 
@@ -60,8 +74,8 @@ void ImageProcessing::createROSPublishers()
 
 bool ImageProcessing::initBoF()
 {
-    string fullpath = parameters_.bof_vocabulary_path_ + string("/") +
-            string("_s") + boost::lexical_cast<string>(parameters_.surf_threshold_) +
+    string fullpath = parameters_.bof_vocabulary_path_ +
+            string("vocabulary_s") + boost::lexical_cast<string>(parameters_.surf_threshold_) +
             string("_g") + boost::lexical_cast<string>(parameters_.bof_groups_) + string(".xml");
 
     cv::FileStorage fs(fullpath,cv::FileStorage::READ);
@@ -106,9 +120,18 @@ bool ImageProcessing::update()
 
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 {
-    current_image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+    static int count = 0;
 
-    update();
+    if (count == 0){
+
+        current_image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+
+        update();
+    }
+
+    if(parameters_.frames_to_jump_)
+        count = (count + 1)%parameters_.frames_to_jump_;
+
 
 }
 

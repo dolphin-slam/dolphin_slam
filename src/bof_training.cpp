@@ -20,7 +20,7 @@
 struct Parameters
 {
     int surf_threshold_;
-    int bof_groups_;
+    int bof_group_;
     int frames_to_jump_;
     string image_topic_;
     string bof_vocabulary_path_;
@@ -35,33 +35,40 @@ void load_parameters(Parameters &parameters)
     private_nh_.param<int>("surf_threshold",parameters.surf_threshold_,100);
 
     //! int bof_groups;
-    private_nh_.param<int>("bof_groups",parameters.bof_groups_,100);
+    private_nh_.param<int>("bof_group",parameters.bof_group_,100);
+
+    //! implementar isto para treinar varios grupos
+//    private_nh.getParam("bof_groups",parameters.bof_groups_);
+
+//    private_nh.getParam("hessian_thresholds",parameters.hessian_thresholds_);
 
     //! int bof_groups;
     private_nh_.param<int>("frames_to_jump",parameters.frames_to_jump_,10);
 
     //! string image_topic;
-    private_nh_.param<string>("image_topic",parameters.image_topic_,"/image_raw");
+    private_nh_.param<string>("image_topic",parameters.image_topic_,"/image");
 
     //! string bof_dictionary_path
-    private_nh_.param<string>("bof_vocabulary_path",parameters.bof_vocabulary_path_,"bof_vocabularies");
+    private_nh_.param<string>("bof_vocabulary_path",parameters.bof_vocabulary_path_,"/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/bof_vocabularies/");
 
     //! string bag_file;
-    private_nh_.param<string>("bag_file",parameters.bag_file,"dataset.bag");
+    private_nh_.param<string>("bag_file",parameters.bag_file,"/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/girona_rotated.bag");
 
 }
 
 int main(int argc, char **argv){
 
     Parameters parameters;
-
     ros::init(argc, argv, "bof_training");
+
+    cv::FileStorage fs;
+    int count = 0;
+    string filename;
+
 
     load_parameters(parameters);
 
-    int count = 0;
-
-    dolphin_slam::BoF bag_of_features(parameters.bof_groups_,parameters.surf_threshold_);
+    dolphin_slam::BoF bag_of_features(parameters.bof_group_,parameters.surf_threshold_);
 
     cv_bridge::CvImageConstPtr cv_image_ptr;
 
@@ -110,16 +117,31 @@ int main(int argc, char **argv){
 
     cout << "Trainning complete" << endl;
 
-	bag_of_features.sortVocab();
-    string filename = parameters.bof_vocabulary_path_ + string("/") +
+    //! Save vocabulary
+    filename = parameters.bof_vocabulary_path_ +
             string("vocabulary_s") + boost::lexical_cast<string>(parameters.surf_threshold_) +
-            string("_g") + boost::lexical_cast<string>(parameters.bof_groups_) + string(".xml");
+            string("_g") + boost::lexical_cast<string>(parameters.bof_group_) + string(".xml");
 
     cout << "Vocabulary: " << filename << endl;
 
-    cv::FileStorage fs(filename,cv::FileStorage::WRITE);
-
+    fs.open(filename,cv::FileStorage::WRITE);
     fs << "BoF" << bag_of_features;
+    fs.release();
+
+    //! Sort vocabulary
+    bag_of_features.sortVocabulary();
+
+    //! Save sorted vocabulary
+    filename = parameters.bof_vocabulary_path_ +
+            string("sorted/vocabulary_s") + boost::lexical_cast<string>(parameters.surf_threshold_) +
+            string("_g") + boost::lexical_cast<string>(parameters.bof_group_) + string(".xml");
+
+    cout << "Sorted vocabulary: " << filename << endl;
+
+    fs.open(filename,cv::FileStorage::WRITE);
+    fs << "BoF" << bag_of_features;
+    fs.release();
+
 
 }
 

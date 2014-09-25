@@ -17,11 +17,13 @@ LocalViewModule::LocalViewModule()
 
     createROSPublishers();
 
+    log_file_.open("local_view.log");
+
 }
 
 LocalViewModule::~LocalViewModule()
 {
-
+    log_file_.close();
 }
 
 void LocalViewModule::loadParameters()
@@ -108,37 +110,32 @@ void LocalViewModule::publishViewTemplate(){
 */
 void LocalViewModule::callback(const dolphin_slam::ImageHistogramConstPtr &message)
 {
-    static int count = 0;
 
-    if(count == 0)
+
+    time_monitor_.start();
+
+    cv::Mat histogram(message->histogram);
+
+    if(computeLocalViewCellActivation(histogram))
     {
-        time_monitor_.start();
-
-        cv::Mat histogram(message->histogram);
-
-        if(computeLocalViewCellActivation(histogram))
-        {
-            number_of_created_local_views++;
-            has_new_local_view_cell = true;
-            ROS_DEBUG_STREAM("View Template created. ID = " << cells_.size()-1);
-        }else
-        {
-            has_new_local_view_cell = false;
-            ROS_DEBUG_STREAM("View Template recognized.");
-        }
-
-        publishViewTemplate();
-
-        time_monitor_.finish();
-        time_monitor_.print();
-
-        execution_time = time_monitor_.getDuration();
-
-        publishExecutionTime();
-
+        number_of_created_local_views++;
+        has_new_local_view_cell = true;
+        ROS_DEBUG_STREAM("View Template created. ID = " << cells_.size()-1);
+    }else
+    {
+        has_new_local_view_cell = false;
+        ROS_DEBUG_STREAM("View Template recognized.");
     }
 
-    count = (count + 1)%parameters_.frames_to_jump_;
+    publishViewTemplate();
+
+    time_monitor_.finish();
+    time_monitor_.print();
+
+    execution_time = time_monitor_.getDuration();
+
+    publishExecutionTime();
+
 }
 
 
