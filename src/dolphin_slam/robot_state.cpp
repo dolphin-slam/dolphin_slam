@@ -119,7 +119,7 @@ void RobotState::DVLCallback(const underwater_sensor_msgs::DVLConstPtr &message)
     //cv::Point3f white_noise(var_nor(),var_nor(),var_nor());
     float elapsed_time;
 
-    if(message->bi_error < 1)
+    if(fabs(message->bi_error) < 1)
     {
         vel_dvl_.x = message->bi_x_axis;
         vel_dvl_.y = message->bi_y_axis;
@@ -140,21 +140,22 @@ void RobotState::DVLCallback(const underwater_sensor_msgs::DVLConstPtr &message)
         timestamp_ = message->header.stamp;
         has_dvl_ = true;
     }
-    else
-    {
-        ROS_DEBUG_STREAM_NAMED("rs","O erro da DVL eh " << message->bi_error);
-    }
+ 
+    ROS_DEBUG_STREAM("DVL " <<
+                     "[ " << message->bi_x_axis <<
+                     " , " << message->bi_y_axis<<
+                     " , " << message->bi_z_axis<<
+                     " ] error = " << message->bi_error);
+    
 
 
 }
 
 void RobotState::IMUCallback(const sensor_msgs::ImuConstPtr &message)
 {
-
-
     yaw_imu_ = tf::getYaw(message->orientation);
 
-    //ROS_DEBUG_STREAM_NAMED("rs","message->orientation =  " << message->orientation);
+    ROS_DEBUG_STREAM("Yaw " << yaw_imu_);
 
     has_imu_ = true;
 }

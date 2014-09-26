@@ -5,12 +5,12 @@ using std::endl;
 
 int sign(double delta)
 {
-	if (delta == 0)
-		return 0;
-	if (delta > 0)
-		return 1;
-	if (delta < 0)
-		return -1;
+    if (delta == 0)
+        return 0;
+    if (delta > 0)
+        return 1;
+    if (delta < 0)
+        return -1;
 }
 
 namespace dolphin_slam
@@ -129,87 +129,77 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
 {
 
     //int index[4];
-    float dist;
-
-    float factor = 0;
-    std::vector<std::vector<float> >weights_per_dimension(DIMS);
-
-    for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
-    {
-        weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
-        cout << "Excitatory weigths dimension "<< i << " = [";
-        for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
-        {
-            dist = j*parameters_.distance_between_neurons_[i];
-            weights_per_dimension[i][j] = exp(-(dist*dist)/(2*parameters_.excitatory_variance_[i]));
-            cout << weights_per_dimension[i][j] << ", ";
-        }
-        cout << "]" << endl;
-    }
-
-
-
-
+    double dist2;
     int windex[DIMS];
 
-    if(parameters_.use_gaussian_weights_)
-    {
-        for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+
+    std::vector<std::vector<float> >weights_per_dimension(DIMS);
+
+    if(parameters_.use_gaussian_weights_){
+
+        for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
         {
-            for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+            weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
+            for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
             {
-                for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
-                {
-                    windex[0]=i;    windex[1]=j;    windex[2]=k;
-
-                    recurrent_excitatory_weights_(windex) =
-                            weights_per_dimension[0][i]*
-                            weights_per_dimension[1][j]*
-                            weights_per_dimension[2][k];
-
-                }
+                dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
+                weights_per_dimension[i][j] = exp(-(dist2)/(2*parameters_.excitatory_variance_[i]));
             }
         }
+
     }
     else
     {
-
-
-        for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+        for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
         {
-            for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+            weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
+            for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
             {
-                for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
-                {
-
-                    windex[0]=i;    windex[1]=j;    windex[2]=k;
-                    factor = pow(i*parameters_.distance_between_neurons_[0],2)/parameters_.excitatory_variance_[0] +
-                            pow(j*parameters_.distance_between_neurons_[1],2)/parameters_.excitatory_variance_[1] +
-                            pow(k*parameters_.distance_between_neurons_[2],2)/parameters_.excitatory_variance_[2];
-
-                    recurrent_excitatory_weights_(windex) = (1 - factor)*
-                            weights_per_dimension[0][i]*
-                            weights_per_dimension[1][j]*
-                            weights_per_dimension[2][k];
-                }
+                dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
+                weights_per_dimension[i][j] = (1-(dist2/parameters_.excitatory_variance_[i]))*
+                        exp(-(dist2)/(2*parameters_.excitatory_variance_[i]));
             }
         }
     }
+
+
+    for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+    {
+        for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+        {
+            for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
+            {
+                windex[0]=i;    windex[1]=j;    windex[2]=k;
+                recurrent_excitatory_weights_(windex) =
+                        weights_per_dimension[0][i]*
+                        weights_per_dimension[1][j]*
+                        weights_per_dimension[2][k];
+
+            }
+        }
+    }
+
 
 
     normalizeRecurrentExcitatoryWeights();
 
-    //    cout << "weights = " << endl;
-    //    for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
-    //    {
-    //        for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
-    //        {
-    //            windex[0]=i;    windex[1]=j;    windex[2]=0;    windex[3]=0;
-    //            cout << recurrent_excitatory_weights_(windex)<< " ";
-    //        }
-    //        cout << endl;
-    //    }
-    //    cout << endl;
+    cout << "weights = " << endl;
+    cout << "[";
+    for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+    {
+        if (i)
+            cout << ";" << endl;
+
+        for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+        {
+            windex[0]=i;    windex[1]=j;    windex[2]=0;
+            if (j)
+                cout << " , ";
+
+            cout << recurrent_excitatory_weights_(windex);
+        }
+    }
+    cout << "]" << endl;
 
 }
 
@@ -771,7 +761,8 @@ void PlaceCellNetwork::applyPathIntegrationOnNetwork()
     delta_y = robot_pose_pc_.response.traveled_distance_.y;
     delta_z = robot_pose_pc_.response.traveled_distance_.z;
 
-    ROS_DEBUG_STREAM_NAMED("pc","Deltas = [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", " << std::setw(6) << delta_z << " ]" );
+    ROS_DEBUG_STREAM_NAMED("pc","Deltas = [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", "
+                           << std::setw(6) << delta_z << " ]" );
 
     integrateX(delta_x);
     integrateY(delta_y);
@@ -823,12 +814,12 @@ void PlaceCellNetwork::learnExternalConnections()
                 for(k=0;k<parameters_.number_of_neurons_[2];k++)
                 {
 
-                        index[0]=i;  index[1]=j;  index[2]=k;
-                        //                    delta_weight = learning_constant_* neurons_(index);
-                        //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
-                        local_view_synaptic_weights_[most_active_lv_cell_](index) =
-                                std::max(local_view_synaptic_weights_[most_active_lv_cell_](index),
-                                learning_constant_ * neurons_(index));
+                    index[0]=i;  index[1]=j;  index[2]=k;
+                    //                    delta_weight = learning_constant_* neurons_(index);
+                    //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
+                    local_view_synaptic_weights_[most_active_lv_cell_](index) =
+                            std::max(local_view_synaptic_weights_[most_active_lv_cell_](index),
+                            learning_constant_ * neurons_(index));
 
                 }
             }
@@ -836,7 +827,8 @@ void PlaceCellNetwork::learnExternalConnections()
     }
 
     //! Local View Weights normalization
-    //    float sum = std::accumulate(local_view_synaptic_weights_[view_template_id_].begin(),local_view_synaptic_weights_[view_template_id_].end(),0.0f);
+    //    float sum = std::accumulate(local_view_synaptic_weights_[view_template_id_].begin(),
+                    //local_view_synaptic_weights_[view_template_id_].end(),0.0f);
     //    local_view_synaptic_weights_[view_template_id_] /= sum;
 
 
@@ -872,13 +864,13 @@ void PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
 
-                    index[0]=i;  index[1]=j;  index[2]=k;
+                index[0]=i;  index[1]=j;  index[2]=k;
 
-                    if(neurons_(index) > max_activity)
-                    {
-                        max_activity = neurons_(index);
-                        std::copy(index,index+DIMS,active_neuron.begin());
-                    }
+                if(neurons_(index) > max_activity)
+                {
+                    max_activity = neurons_(index);
+                    std::copy(index,index+DIMS,active_neuron.begin());
+                }
 
             }
         }
@@ -886,7 +878,8 @@ void PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
 
     }
 
-    ROS_DEBUG_STREAM_NAMED("pc","max activity = " << max_activity << " or " << *std::max_element(neurons_.begin(),neurons_.end()) << "neuron = " << active_neuron[0] << " " <<  active_neuron[1] << " " << active_neuron[2]  );
+    ROS_DEBUG_STREAM_NAMED("pc","max activity = " << max_activity << " or " << *std::max_element(neurons_.begin(),neurons_.end())
+                           << "neuron = " << active_neuron[0] << " " <<  active_neuron[1] << " " << active_neuron[2]  );
 
 }
 
@@ -947,22 +940,22 @@ void PlaceCellNetwork::publishNetworkActivityMessage()
             for(k=0;k<parameters_.number_of_neurons_[2];k++)
             {
 
-                    index[0]=i;  index[1]=j;  index[2]=k;
+                index[0]=i;  index[1]=j;  index[2]=k;
 
-                    //! set point position
-                    message.points[point_index].x = i;
-                    message.points[point_index].y = j;
-                    message.points[point_index].z = k;
+                //! set point position
+                message.points[point_index].x = i;
+                message.points[point_index].y = j;
+                message.points[point_index].z = k;
 
-                    color.setColor(neurons_(index)/max);
+                color.setColor(neurons_(index)/max);
 
-                    //! set point color, according to network activity;
-                    message.colors[point_index].r = color.getR();
-                    message.colors[point_index].g = color.getG();
-                    message.colors[point_index].b = color.getB();
-                    message.colors[point_index].a = 1.0;
+                //! set point color, according to network activity;
+                message.colors[point_index].r = color.getR();
+                message.colors[point_index].g = color.getG();
+                message.colors[point_index].b = color.getB();
+                message.colors[point_index].a = 1.0;
 
-                    point_index++;
+                point_index++;
 
 
             }
