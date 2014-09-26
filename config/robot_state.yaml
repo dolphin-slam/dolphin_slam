@@ -1,4 +1,3 @@
 dvl_topic: '/dvl'
 imu_topic: '/imu'
 gt_topic: '/ground_truth'
-

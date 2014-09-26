@@ -13,13 +13,22 @@ RobotState::RobotState(): normal_(0,DVL_ERROR), var_nor(rng_, normal_)
     robot_yaw_ = 0;
 
     delta_pc_ = delta_em_ = cv::Point3f(0.0,0.0,0.0);
+
+    loadParameters();
+    createROSSubscribers();
+    createROSServices();
+
 }
 
 void RobotState::loadParameters()
 {
-    node_handle_.param<std::string>("dvl_topic", parameters_.dvl_topic_, "/g500/dvl");
-    node_handle_.param<std::string>("imu_topic", parameters_.imu_topic_, "/g500/imu");
-    node_handle_.param<std::string>("gt_topic", parameters_.gt_topic_, "/ground_truth");
+
+    ros::NodeHandle private_nh("~");
+
+
+    private_nh.param<std::string>("dvl_topic", parameters_.dvl_topic_, "/g500/dvl");
+    private_nh.param<std::string>("imu_topic", parameters_.imu_topic_, "/g500/imu");
+    private_nh.param<std::string>("gt_topic", parameters_.gt_topic_, "/ground_truth");
 }
 
 void RobotState::createROSSubscribers()
@@ -107,7 +116,7 @@ bool RobotState::emService(RobotPose::Request &req, RobotPose::Response &res)
 
 void RobotState::DVLCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 {
-    cv::Point3f white_noise(var_nor(),var_nor(),var_nor());
+    //cv::Point3f white_noise(var_nor(),var_nor(),var_nor());
     float elapsed_time;
 
     if(message->bi_error < 1)

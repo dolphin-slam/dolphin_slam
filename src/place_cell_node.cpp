@@ -7,13 +7,13 @@ using namespace dolphin_slam;
 int main(int argc, char **argv){
 
 
-    ros::init(argc, argv, "pose_cell_network");
+    ros::init(argc, argv, "place_cell_network");
 
 
     PlaceCellNetwork place_cell_network;
 
     ros::spin();
 
-    ROS_INFO_STREAM("Shutting Down Pose Cell Network");
+    ROS_INFO_STREAM("Shutting Down Place Cell Network");
 
 }

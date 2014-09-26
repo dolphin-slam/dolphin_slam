@@ -1,4 +1,4 @@
-number_of_neurons: [30, 30, 30]        
+number_of_neurons: [10, 10, 10]
 distance_between_neurons: [ 0.1, 0.1, 0.1]           
 excitatory_variance: [0.2, 0.2, 0.2]             
 input_learning_rate: 0.25     

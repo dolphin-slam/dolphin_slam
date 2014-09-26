@@ -1,6 +1,6 @@
 <launch>
 
-    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/girona_rotated.bag" required="true"/>
+    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/girona_rotated.bag -r 0.3" required="true"/>
     
 	<node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
 		<rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />
