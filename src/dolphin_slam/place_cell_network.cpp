@@ -133,32 +133,22 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
     int windex[DIMS];
 
 
-    std::vector<std::vector<float> >weights_per_dimension(DIMS);
+    std::vector<std::vector<double> >weights_per_dimension(DIMS);
 
-    if(parameters_.use_gaussian_weights_){
 
-        for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
-        {
-            weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
-            for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
-            {
-                dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
-                weights_per_dimension[i][j] = exp(-(dist2)/(2*parameters_.excitatory_variance_[i]));
-            }
-        }
-
-    }
-    else
+    for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
     {
-        for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
+        weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
+        for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
         {
-            weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
-            for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
-            {
-                dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
+            dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
+            if(parameters_.use_gaussian_weights_){
+                weights_per_dimension[i][j] = exp(-dist2/(2*parameters_.excitatory_variance_[i]));
+            }else{
                 weights_per_dimension[i][j] = (1-(dist2/parameters_.excitatory_variance_[i]))*
-                        exp(-(dist2)/(2*parameters_.excitatory_variance_[i]));
+                        exp(-dist2/(2*parameters_.excitatory_variance_[i]));
             }
+
         }
     }
 
@@ -828,7 +818,7 @@ void PlaceCellNetwork::learnExternalConnections()
 
     //! Local View Weights normalization
     //    float sum = std::accumulate(local_view_synaptic_weights_[view_template_id_].begin(),
-                    //local_view_synaptic_weights_[view_template_id_].end(),0.0f);
+    //local_view_synaptic_weights_[view_template_id_].end(),0.0f);
     //    local_view_synaptic_weights_[view_template_id_] /= sum;
 
 
