@@ -20,8 +20,7 @@ namespace dolphin_slam
 *   \brief Constructor
 *
 */
-PlaceCellNetwork::PlaceCellNetwork():
-    number_of_recurrent_excitatory_weights_(DIMS,1)
+PlaceCellNetwork::PlaceCellNetwork()
 {
     max_view_template_id_ = 0;
     most_active_lv_cell_ = -1;
@@ -53,13 +52,13 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.getParam("distance_between_neurons",parameters_.distance_between_neurons_);
 
-    private_nh.getParam("excitatory_variance",parameters_.excitatory_variance_);
+    private_nh.param<double>("recurrent_connection_std",parameters_.recurrent_connection_std_,2);
 
     private_nh.param<double>("input_learning_rate",parameters_.input_learning_rate_,1);
 
-    private_nh.param<bool>("multiple_local_view_active",parameters_.multiple_local_view_active_,true);
+    private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
-    private_nh.param<bool>("use_gaussian_weights",parameters_.use_gaussian_weights_,false);
+    private_nh.param<std::string>("weight_function",parameters_.weight_function_,"mexican_hat");
 
 }
 
@@ -98,26 +97,6 @@ void PlaceCellNetwork::createNeurons()
     neurons_.create(DIMS,&parameters_.number_of_neurons_[0]);
     aux_neurons_.create(DIMS,&parameters_.number_of_neurons_[0]);
 
-    initNeuronsActivity();
-}
-
-//! Função para alocar a matriz de pesos
-void PlaceCellNetwork::createExcitatoryWeights()
-{
-
-    for(int i=0;i<DIMS;i++)
-    {
-        number_of_recurrent_excitatory_weights_[i] = (parameters_.number_of_neurons_[i]+2)/2;
-    }
-
-    recurrent_excitatory_weights_.create(DIMS,&number_of_recurrent_excitatory_weights_[0]);
-
-    initRecurrentExcitatoryWeights();
-
-}
-
-void PlaceCellNetwork::initNeuronsActivity()
-{
     std::fill(neurons_.begin(),neurons_.end(),0);
 
     //! Put all activity in the first neurons, representing the initial position (x,y,z,yaw)->(0,0,0,0)
@@ -125,62 +104,61 @@ void PlaceCellNetwork::initNeuronsActivity()
 
 }
 
-void PlaceCellNetwork::initRecurrentExcitatoryWeights()
+//! Função para alocar a matriz de pesos
+void PlaceCellNetwork::createExcitatoryWeights()
 {
 
-    //int index[4];
-    double dist2;
+    std::vector<int> weight_number(DIMS);  //!< armazena o tamanho de cada dimensão da matriz de excitação
+    double variance;
     int windex[DIMS];
 
-
-    std::vector<std::vector<double> >weights_per_dimension(DIMS);
-
-
-    for(int i=0;i<number_of_recurrent_excitatory_weights_.size();i++)
+    for(int i=0;i<DIMS;i++)
     {
-        weights_per_dimension[i].resize(number_of_recurrent_excitatory_weights_[i]);
-        for(int j=0;j<number_of_recurrent_excitatory_weights_[i];j++)
-        {
-            dist2 = pow(j*parameters_.distance_between_neurons_[i],2);
-            if(parameters_.use_gaussian_weights_){
-                weights_per_dimension[i][j] = exp(-dist2/(2*parameters_.excitatory_variance_[i]));
-            }else{
-                weights_per_dimension[i][j] = (1-(dist2/parameters_.excitatory_variance_[i]))*
-                        exp(-dist2/(2*parameters_.excitatory_variance_[i]));
-            }
-
-        }
+        weight_number[i] = (parameters_.number_of_neurons_[i]+2)/2;
     }
+    recurrent_excitatory_weights_.create(DIMS,&weight_number[0]);
 
-
-    for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+    for(int i=0;i<weight_number[0];i++)
     {
-        for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+        for(int j=0;j<weight_number[1];j++)
         {
-            for(int k=0;k<number_of_recurrent_excitatory_weights_[2];k++)
+            for(int k=0;k<weight_number[2];k++)
             {
                 windex[0]=i;    windex[1]=j;    windex[2]=k;
-                recurrent_excitatory_weights_(windex) =
-                        weights_per_dimension[0][i]*
-                        weights_per_dimension[1][j]*
-                        weights_per_dimension[2][k];
+                variance = pow(parameters_.recurrent_connection_std_,2);
+
+                if(parameters_.weight_function_ == "gaussian")
+                {
+                    recurrent_excitatory_weights_(windex) =
+                            exp(-(i*i+j*j+k*k)/(2*variance));
+                }
+                else if (parameters_.weight_function_ == "mexican_hat")
+                {
+                    recurrent_excitatory_weights_(windex) =
+                            (1-(i*i+j*j+k*k)/(variance))*
+                            exp(-(i*i+j*j+k*k)/(2*variance));
+                }
+                else
+                {
+                    ROS_ERROR("Wrong weight function. Consider revise the weight_function parameter");
+                }
 
             }
         }
     }
 
+    //! I don't know what is the behaviour of this function with mexican hat weights. \todo Revise it
+    // normalizeRecurrentExcitatoryWeights();
 
-
-    normalizeRecurrentExcitatoryWeights();
-
+    //! Print a 2D weight function for debugging
     cout << "weights = " << endl;
     cout << "[";
-    for(int i=0;i<number_of_recurrent_excitatory_weights_[0];i++)
+    for(int i=0;i<weight_number[0];i++)
     {
         if (i)
             cout << ";" << endl;
 
-        for(int j=0;j<number_of_recurrent_excitatory_weights_[1];j++)
+        for(int j=0;j<weight_number[1];j++)
         {
             windex[0]=i;    windex[1]=j;    windex[2]=0;
             if (j)
@@ -191,7 +169,9 @@ void PlaceCellNetwork::initRecurrentExcitatoryWeights()
     }
     cout << "]" << endl;
 
+
 }
+
 
 void PlaceCellNetwork::normalizeRecurrentExcitatoryWeights()
 {
@@ -222,7 +202,6 @@ void PlaceCellNetwork::normalizeRecurrentExcitatoryWeights()
                     distances[d] = std::min(index[d],parameters_.number_of_neurons_[d]-index[d]);
                 }
                 aux_neurons_(index)+= recurrent_excitatory_weights_(distances);
-
 
             }
         }
@@ -482,7 +461,7 @@ void PlaceCellNetwork::applyExternalInputOnNetwork()
     learnExternalConnections();
 
 
-    if(parameters_.multiple_local_view_active_)
+    if(parameters_.local_view_activation_ == "multiple")
     {
         for(int lvc=0;lvc<lv_cells_active_.size();lvc++)
         {
@@ -496,7 +475,7 @@ void PlaceCellNetwork::applyExternalInputOnNetwork()
 
         }
     }
-    else
+    else if (parameters_.local_view_activation_ == "single")
     {
 
         local_view_age = max_view_template_id_ - most_active_lv_cell_;
@@ -514,6 +493,10 @@ void PlaceCellNetwork::applyExternalInputOnNetwork()
         }
 
 
+    }
+    else
+    {
+        ROS_ERROR("Wrong local view activation method. Revise local_view_activation_ parameter");
     }
 }
 
@@ -768,7 +751,7 @@ void PlaceCellNetwork::learnExternalConnections()
     float weight;
 
 
-    if(parameters_.multiple_local_view_active_){
+    if(parameters_.local_view_activation_ == "multiple"){
 
         //! lvc = local view cell
         foreach (Cell& lvc, lv_cells_active_) {

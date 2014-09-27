@@ -1,6 +1,15 @@
 number_of_neurons: [20, 20, 20]
 distance_between_neurons: [ 0.25, 0.25, 0.25]
-excitatory_variance: [0.1, 0.1, 0.1]
-input_learning_rate: 0.25     
-multiple_local_view_active: true                                
-use_gaussian_weights: false
+
+
+input_learning_rate: 0.25
+
+#local view activation: multiple or single
+local_view_activation_: 'multiple'
+
+
+#weighs function type: mexican_hat or gaussian
+weight_function: 'mexican_hat'
+
+#standard deviation of recurrent connections. Expressed in number of cells
+recurrent_connection_std: 2

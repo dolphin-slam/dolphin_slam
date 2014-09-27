@@ -43,10 +43,12 @@ struct PlaceCellParameters
 {
     std::vector<int> number_of_neurons_;
     std::vector<double> distance_between_neurons_;
-    std::vector<double> excitatory_variance_;
     double input_learning_rate_;
-    bool multiple_local_view_active_;
-    bool use_gaussian_weights_;
+
+    double recurrent_connection_std_;
+    std::string local_view_activation_;
+    std::string weight_function_;
+
 };
 
 
@@ -91,8 +93,7 @@ private:
     void createNeurons();
     //! Função para alocar a matriz de pesos
     void createExcitatoryWeights();
-    void initNeuronsActivity();
-    void initRecurrentExcitatoryWeights();
+
     void normalizeRecurrentExcitatoryWeights();
 
 
@@ -119,7 +120,6 @@ private:
 
 
     //! CANN
-    std::vector<int> number_of_recurrent_excitatory_weights_ ;  //!< armazena o tamanho de cada dimensão da matriz de excitação
     cv::Mat_<float> neurons_;   //!< 4D Array of neurons
     cv::Mat_<float> aux_neurons_;  //!< Matriz auxiliar para atualização da rede
 
