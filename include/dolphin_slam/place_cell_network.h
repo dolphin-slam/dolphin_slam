@@ -13,7 +13,6 @@
 #include <visualization_msgs/Marker.h>
 #include <underwater_sensor_msgs/DVL.h>
 #include <dolphin_slam/ExperienceEvent.h>
-#include <dolphin_slam/LocalViewNetwork.h>
 #include <dolphin_slam/RobotPose.h>
 #include <dolphin_slam/ExecutionTime.h>
 
@@ -76,14 +75,14 @@ private:
     float calculateMaxDistance();
 
     //! CANN
-    void updateNetwork(); //!< \todo Decidir como será o update da rede
-    void exciteNetwork();
+    void update(); //!< \todo Decidir como será o update da rede
+    void excite();
     void learnExternalConnections();
-    void applyExternalInputOnNetwork();
-    void applyPathIntegrationOnNetwork();
+    void externalInput();
+    void pathIntegration();
     void limitNetworkActivity();
     void normalizeNetworkActivity();
-    void getActiveNeuron(std::vector<int> &active_neuron);
+    double getActiveNeuron(std::vector<int> &active_neuron);
 
     void integrateX(double delta);
     void integrateY(double delta);
@@ -98,7 +97,7 @@ private:
 
 
     //! callbacks
-    void viewTemplateCallback(const LocalViewNetworkConstPtr &message); //!< \todo trocar para a mensagem de view template
+    void localViewCallback(const ActiveLocalViewCellsConstPtr &message); //!< \todo trocar para a mensagem de view template
 
     void timerCallback(const ros::TimerEvent &event);
 
@@ -111,22 +110,22 @@ private:
     //! Local View
     bool has_new_local_view_cell_;
     int most_active_lv_cell_;
-    float lambda_learning_;
-    float max_energy_;
-    std::vector <Cell> lv_cells_active_;
-    std::vector<cv::Mat_<float> > local_view_synaptic_weights_;    //!< matriz de pesos das conexões de entrada
+    double lambda_learning_;
+    double max_energy_;
+    std::vector <LocalViewCell> lv_cells_active_;
+    std::vector<cv::Mat_<double> > local_view_synaptic_weights_;    //!< matriz de pesos das conexões de entrada
     int max_view_template_id_;
     int external_input_min_age_;
 
 
     //! CANN
-    cv::Mat_<float> neurons_;   //!< 4D Array of neurons
-    cv::Mat_<float> aux_neurons_;  //!< Matriz auxiliar para atualização da rede
+    cv::Mat_<double> neurons_;   //!< 4D Array of neurons
+    cv::Mat_<double> aux_neurons_;  //!< Matriz auxiliar para atualização da rede
 
-    cv::Mat_<float> recurrent_excitatory_weights_; //!< Matriz dos pesos de excitação.
+    cv::Mat_<double> recurrent_excitatory_weights_; //!< Matriz dos pesos de excitação.
     std::vector<int> active_index_;
-    float k_external_activation_;
-    float learning_constant_;
+    double k_external_activation_;
+    double learning_constant_;
 
 
     //RobotState robot_state_;    //! Stores the travelled distance between updates
@@ -144,7 +143,6 @@ private:
     ros::Subscriber IMU_subscriber_;
 
     ros::Publisher net_activity_publisher_;
-    ros::Publisher net_activity_yaw_publisher_;
     ros::Publisher experience_event_publisher_;
     ros::Publisher execution_time_publisher_;
 
@@ -156,8 +154,6 @@ private:
 
     dolphin_slam::RobotPose robot_pose_pc_;
     dolphin_slam::RobotPose robot_pose_em_;
-
-    LocalViewNetworkPtr local_view_network_msg_;
 
     TimeMonitor time_monitor_;
 

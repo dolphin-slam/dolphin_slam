@@ -57,8 +57,7 @@ find_package(OpenCV REQUIRED)
 add_message_files(
    FILES
    ImageHistogram.msg
-   LocalViewNetwork.msg
-   LocalViewCell.msg
+   ActiveLocalViewCells.msg
    ExecutionTime.msg
    ExperienceEvent.msg
    PlaceCellActivity.msg

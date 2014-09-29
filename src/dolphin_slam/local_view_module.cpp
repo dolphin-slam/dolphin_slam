@@ -2,6 +2,8 @@
 
 const float ROS_TIMER_STEP = 0.25;
 
+using std::endl;
+
 namespace dolphin_slam
 {
 
@@ -10,6 +12,10 @@ LocalViewModule::LocalViewModule()
 
     number_of_created_local_views = 0;
     number_of_recognized_local_views = 0;
+
+    start_stamp_ = ros::Time::now();
+
+
 
     loadParameters();
 
@@ -32,6 +38,8 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<double>("similarity_threshold",parameters_.similarity_threshold,0.85);
 
+    private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
+
 }
 
 void LocalViewModule::createROSSubscribers()
@@ -42,7 +50,7 @@ void LocalViewModule::createROSSubscribers()
 
 void LocalViewModule::createROSPublishers()
 {
-    view_template_publisher_ = node_handle_.advertise<dolphin_slam::LocalViewNetwork>("local_view_cells",1);
+    output_publisher_ = node_handle_.advertise<dolphin_slam::ActiveLocalViewCells>("local_view_cells",1);
 
     execution_time_publisher_ = node_handle_.advertise<dolphin_slam::ExecutionTime>("execution_time",1,false);
 }
@@ -58,47 +66,66 @@ void LocalViewModule::createROSTimers()
 
 void LocalViewModule::timerCallback(const ros::TimerEvent& event)
 {
-    static int cont = 0;
 
-    has_new_local_view_cell = true;
-
-    most_active_cell_ = cont++;
-
-
-    //current_view_template_ = cont++;
-
-
-    publishViewTemplate();
 }
 
 /*!
 *   \brief Function to publish view template
 */
-void LocalViewModule::publishViewTemplate(){
+void LocalViewModule::publishOutput(){
 
-    LocalViewNetwork message;
-    Cell *cell;
+    double max_rate = 0;
+    int max_id;
 
-    message.header.stamp = ros::Time::now();
+    output_message_.header.stamp = ros::Time::now();
 
-    message.has_new_cell_ = has_new_local_view_cell;
-
-
-    message.number_of_cells_ = cells_.size();
-    message.most_active_cell_ = most_active_cell_;
-    message.active_cells_.resize(active_cells_.size());
-
-    for(int i=0;i<active_cells_.size();i++)
+    if(parameters_.local_view_activation_ == "single")
     {
-        //! Assert para testar se o id está confizente com o indice do vetor
-        cell = &cells_[active_cells_[i]];
-        message.active_cells_[i].id_ = cell->id_;
-        message.active_cells_[i].rate_ = cell->rate_;
+        BOOST_FOREACH(LocalViewCell &lvc,cells_)
+        {
+            if(lvc.active_)
+            {
+                if(lvc.rate_ > max_rate)
+                {
+                    max_rate = lvc.rate_;
+                    max_id = lvc.id_;
+                }
+            }
+        }
+        output_message_.most_active_id_ = max_id;
+        output_message_.cell_id_.push_back(max_id);
+        output_message_.cell_rate_.push_back(max_rate);
 
+        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " " << max_id << " " << max_rate << endl;
+    }
+    else if(parameters_.local_view_activation_ == "multiple")
+    {
+        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " ";
+        BOOST_FOREACH(LocalViewCell &lvc,cells_)
+        {
+            if(lvc.active_)
+            {
+                if(lvc.rate_ > max_rate)
+                {
+                    max_rate = lvc.rate_;
+                    max_id = lvc.id_;
+                }
+                output_message_.cell_id_.push_back(lvc.id_);
+                output_message_.cell_rate_.push_back(lvc.rate_);
+                log_file_ << lvc.id_ << " " << lvc.rate_ << " " ;
+            }
+        }
+        log_file_ << endl;
+        output_message_.most_active_id_ = max_id;
+
+    }
+    else
+    {
+        ROS_ERROR("Wrong local view cell activation. Use single or multiple");
     }
 
     //! Publica a mensagem
-    view_template_publisher_.publish(message);
+    output_publisher_.publish(output_message_);
 
 }
 
@@ -111,23 +138,19 @@ void LocalViewModule::publishViewTemplate(){
 void LocalViewModule::callback(const dolphin_slam::ImageHistogramConstPtr &message)
 {
 
-
     time_monitor_.start();
 
+    output_message_.image_ = message->image;
+    output_message_.histogram_ = message->histogram;
+
+    //! convert to opencv matrix
     cv::Mat histogram(message->histogram);
 
-    if(computeLocalViewCellActivation(histogram))
-    {
-        number_of_created_local_views++;
-        has_new_local_view_cell = true;
-        ROS_DEBUG_STREAM("View Template created. ID = " << cells_.size()-1);
-    }else
-    {
-        has_new_local_view_cell = false;
-        ROS_DEBUG_STREAM("View Template recognized.");
-    }
+    ROS_DEBUG_STREAM("histogram = "<< histogram);
 
-    publishViewTemplate();
+    computeRate(histogram);
+
+    publishOutput();
 
     time_monitor_.finish();
     time_monitor_.print();
@@ -137,8 +160,6 @@ void LocalViewModule::callback(const dolphin_slam::ImageHistogramConstPtr &messa
     publishExecutionTime();
 
 }
-
-
 
 
 void LocalViewModule::publishExecutionTime()
@@ -154,65 +175,48 @@ void LocalViewModule::publishExecutionTime()
 }
 
 
-int LocalViewModule::createViewTemplate(const cv::Mat & histogram)
+int LocalViewModule::createNewCell(const cv::Mat & histogram)
 {
 
     cells_.resize(cells_.size() + 1);
-    Cell* cell = &(*(cells_.end() - 1));
+    LocalViewCell* cell = &(*(cells_.end() - 1));
 
     cell->id_ = cells_.size() - 1;
 
     cell->rate_ = 1.0;
+    cell->active_ = true;
     cell->data_ = histogram.clone();
+
+    ROS_DEBUG_STREAM("View Template created. ID = " << cell->id_);
 
     return cell->id_;
 }
 
 
 
-bool LocalViewModule::computeLocalViewCellActivation(const cv::Mat & histogram)
+void LocalViewModule::computeRate(const cv::Mat & histogram)
 {
-    float correlation;
+    bool has_active_cell = false;
 
-    float major_activation = 0;
+    foreach (LocalViewCell &cell, cells_){
 
-    bool ret = false;
+        cell.rate_ = cv::compareHist(cell.data_,histogram,CV_COMP_CORREL);
 
-    active_cells_.clear();
-    foreach (Cell &cell, cells_){
-
-        correlation = cv::compareHist(cell.data_,histogram,CV_COMP_CORREL);
-
-        if(correlation > parameters_.similarity_threshold)
+        if(cell.rate_ > parameters_.similarity_threshold)
         {
-            //            cell.rate_ = (correlation - match_threshold_)/(1.0 - match_threshold_);
-
-            cell.rate_ = correlation;
-
-            active_cells_.push_back(cell.id_);
-            ret = true;
-
-            if (cell.rate_ > major_activation){
-                major_activation = cell.rate_;
-                most_active_cell_ = cell.id_;
-            }
+            cell.active_ = true;
+            has_active_cell = true;
         }
         else
         {
-            cell.rate_ = 0.0;
+            cell.active_ = false;
         }
     }
 
-    //! Não encontrou nenhuma célula parecida
-    if(!ret)
-    {
-        //! Cria uma nova local view
-        most_active_cell_ = createViewTemplate(histogram);
-        active_cells_.push_back(most_active_cell_);
-    }
-
-    return ret;
-
+    if(!has_active_cell)
+        createNewCell(histogram);
 }
+
+
 
 } //namespace

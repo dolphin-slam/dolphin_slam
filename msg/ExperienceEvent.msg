@@ -1,16 +1,20 @@
 Header header
 
+#Captured image and BoF histogram
+sensor_msgs/Image image_
+float64[] histogram_
 
-bool has_new_local_view_cell_
+# Active Local View Cells
+uint32[] lv_cell_id_
+float64[] lv_cell_rate_
 
-uint32 most_active_lv_cell_
-uint32[] pose_cell_index
+# Place Cell index (x,y,z) and rate
+uint32[] pc_index_
+float64 pc_rate_
+PlaceCellActivity pc_activity_
 
+# Distance traveled since last experience
 geometry_msgs/Point traveled_distance_
 geometry_msgs/Point ground_truth_
-
-PlaceCellActivity pc_activity_
-LocalViewCell[]  lv_cells_active_
-
 
 

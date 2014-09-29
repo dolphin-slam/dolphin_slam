@@ -64,14 +64,13 @@ void PlaceCellNetwork::loadParameters()
 
 void PlaceCellNetwork::createROSSubscribers()
 {
-    view_template_subscriber_ = node_handle_.subscribe("local_view_cells", 1, &PlaceCellNetwork::viewTemplateCallback, this);
+    view_template_subscriber_ = node_handle_.subscribe("local_view_cells", 1, &PlaceCellNetwork::localViewCallback, this);
 
 }
 
 void PlaceCellNetwork::createROSPublishers()
 {
     net_activity_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("network_activity",1);
-    net_activity_yaw_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("network_activity_yaw",1);
 
     execution_time_publisher_ = node_handle_.advertise<dolphin_slam::ExecutionTime>("execution_time",1,false);
 
@@ -218,7 +217,7 @@ void PlaceCellNetwork::normalizeRecurrentExcitatoryWeights()
 void PlaceCellNetwork::timerCallback(const ros::TimerEvent& event)
 {
 
-    updateNetwork();
+    update();
 }
 
 
@@ -229,53 +228,44 @@ void PlaceCellNetwork::createROSTimers()
 }
 
 
-void PlaceCellNetwork::viewTemplateCallback(const dolphin_slam::LocalViewNetworkConstPtr &message)
+void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &message)
 {
     ROS_DEBUG_STREAM("ViewTemplate Message Received ");
 
-    //! \todo Decidir quando chamar o evento de nova experiência
-    has_new_local_view_cell_ = message->has_new_cell_;
-
-    lv_cells_active_.resize(message->active_cells_.size());
-    for(int i=0;i< message->active_cells_.size(); i++)
+    lv_cells_active_.resize(message->cell_id_.size());
+    for(int i=0;i< lv_cells_active_.size(); i++)
     {
-        lv_cells_active_[i].id_ = message->active_cells_[i].id_;
-        lv_cells_active_[i].rate_ = message->active_cells_[i].rate_;
+        lv_cells_active_[i].id_ = message->cell_id_[i];
+        lv_cells_active_[i].rate_ = message->cell_rate_[i];
+        lv_cells_active_[i].active_ = true;
     }
 
-    if(most_active_lv_cell_ != message->most_active_cell_)
-    {
-        experience_event_ = true;
-    }
-    else
-    {
-        experience_event_ = false;
-    }
+
+    experience_event_ = (most_active_lv_cell_ == message->most_active_id_);
 
     //! atualiza a local view mais ativa no momento
-    most_active_lv_cell_ = message->most_active_cell_;
+    most_active_lv_cell_ = message->most_active_id_;
 
     cout << "view template id = " << most_active_lv_cell_ << endl;
 
-
-    max_view_template_id_ = message->number_of_cells_ -1;
+    max_view_template_id_ = std::max(max_view_template_id_,most_active_lv_cell_);
 
     //! aloca novas posições na matriz de conexões caso ainda não existam
-    if(message->number_of_cells_ > static_cast<int>(local_view_synaptic_weights_.size()))
+    if((max_view_template_id_+1) > static_cast<int>(local_view_synaptic_weights_.size()))
     {
         int old_size = local_view_synaptic_weights_.size();
-        local_view_synaptic_weights_.resize(message->number_of_cells_);//!< cria novas posições na matriz de conexões
+        local_view_synaptic_weights_.resize(max_view_template_id_+1);//!< cria novas posições na matriz de conexões
         //! aloca os novos vetores criados
-        for(std::vector<cv::Mat_<float> >::iterator it = local_view_synaptic_weights_.begin() + old_size;
+        for(std::vector<cv::Mat_<double> >::iterator it = local_view_synaptic_weights_.begin() + old_size;
             it < local_view_synaptic_weights_.end();it++)
         {
             //! Create a four dimension excitatory matrix
-            it->create(4,&parameters_.number_of_neurons_[0]);
+            it->create(DIMS,&parameters_.number_of_neurons_[0]);
             std::fill(it->begin(),it->end(),0);
         }
     }
 
-    updateNetwork();
+    update();
 
 
 }
@@ -306,7 +296,7 @@ void PlaceCellNetwork::callRobotStateServices()
     }
 }
 
-void PlaceCellNetwork::updateNetwork()
+void PlaceCellNetwork::update()
 {
     time_monitor_.start();
 
@@ -314,12 +304,12 @@ void PlaceCellNetwork::updateNetwork()
     callRobotStateServices();
 
     //! excita a rede com uma função de ativação do tipo chapéu mexicano
-    exciteNetwork();
+    excite();
 
     //! realiza a integração de caminho na cann
-    applyPathIntegrationOnNetwork();
+    pathIntegration();
 
-    //applyExternalInputOnNetwork();
+    //externalInput();
 
     //! normaliza a atividade na rede
     normalizeNetworkActivity();
@@ -382,7 +372,7 @@ int PlaceCellNetwork::getWrapIndex(int index,int dimension)
  *  \todo Otimizar a função, pois o que é feito em um lado,
  * é feito de forma similar no lado oposto da matriz
  */
-void PlaceCellNetwork::exciteNetwork()
+void PlaceCellNetwork::excite()
 {
     time_monitor_.start();
 
@@ -390,8 +380,8 @@ void PlaceCellNetwork::exciteNetwork()
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0);
 
     int index[DIMS],aindex[DIMS];
-    int i,j,k,l;    //! indices da matriz de neuronios
-    int ai,aj,ak,al;    //! indices da matriz de pesos
+    int i,j,k;    //! indices da matriz de neuronios
+    int ai,aj,ak;    //! indices da matriz de pesos
 
     int distances[4];
     int less,bigger;
@@ -446,13 +436,28 @@ void PlaceCellNetwork::exciteNetwork()
     }
 
     //! adiciona a ativação atual dos neurônios com a excitação recorrente
-    neurons_ += aux_neurons_;
+    //! para cada neuronio da matriz
+    for(i=0;i<parameters_.number_of_neurons_[0];i++)
+    {
+        for(j=0;j<parameters_.number_of_neurons_[1];j++)
+        {
+            for(k=0;k<parameters_.number_of_neurons_[2];k++)
+            {
+                //! para cada elemento da matriz de pesos
+                //! preenche os indices em um vetor
+                index[0]=i;  index[1]=j;  index[2]=k;
+                //! \todo descobrir pq ue diminui o neuronio atual
+                neurons_(index) = std::max(aux_neurons_(index) - neurons_(index),0.0);
+            }
+        }
+    }
+
 
     time_monitor_.finish();
     ROS_DEBUG_STREAM("Excite duration " << time_monitor_.getDuration() << "s");
 }
 
-void PlaceCellNetwork::applyExternalInputOnNetwork()
+void PlaceCellNetwork::externalInput()
 {
 
     int local_view_age;
@@ -724,7 +729,7 @@ void PlaceCellNetwork::integrateZ(double  delta)
  *Copia a atividade neuronal de uma celula para outra(s), respeitando a orientaçao da celula
  *
  */
-void PlaceCellNetwork::applyPathIntegrationOnNetwork()
+void PlaceCellNetwork::pathIntegration()
 {
 
     float delta_x,delta_y,delta_z;
@@ -734,8 +739,8 @@ void PlaceCellNetwork::applyPathIntegrationOnNetwork()
     delta_y = robot_pose_pc_.response.traveled_distance_.y;
     delta_z = robot_pose_pc_.response.traveled_distance_.z;
 
-    ROS_DEBUG_STREAM_NAMED("pc","Deltas = [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", "
-                           << std::setw(6) << delta_z << " ]" );
+    ROS_DEBUG_STREAM("Path Integration: [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", "
+                     << std::setw(6) << delta_z << " ]" );
 
     integrateX(delta_x);
     integrateY(delta_y);
@@ -754,7 +759,7 @@ void PlaceCellNetwork::learnExternalConnections()
     if(parameters_.local_view_activation_ == "multiple"){
 
         //! lvc = local view cell
-        foreach (Cell& lvc, lv_cells_active_) {
+        foreach (LocalViewCell& lvc, lv_cells_active_) {
 
 
             //! para cada neuronio da matriz
@@ -816,15 +821,18 @@ void PlaceCellNetwork::limitNetworkActivity()
 
 void PlaceCellNetwork::normalizeNetworkActivity()
 {
-    float sum = std::accumulate(neurons_.begin(),neurons_.end(),0.0f);
-    neurons_ /= sum;
+    double max = *std::max_element(neurons_.begin(),neurons_.end());
+    neurons_ /= max;
+
+    //    float sum = std::accumulate(neurons_.begin(),neurons_.end(),0.0f);
+    //    neurons_ /= sum;
 }
 
 
-void PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
+double PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
 {
-    float max_activity = 0;
-    int i,j,k,l;
+    double max_activity = 0;
+    int i,j,k;
     int index[4];
 
     //! \todo otimizar essa funçao
@@ -853,6 +861,8 @@ void PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
 
     ROS_DEBUG_STREAM_NAMED("pc","max activity = " << max_activity << " or " << *std::max_element(neurons_.begin(),neurons_.end())
                            << "neuron = " << active_neuron[0] << " " <<  active_neuron[1] << " " << active_neuron[2]  );
+
+    return max_activity;
 
 }
 
@@ -943,29 +953,32 @@ void PlaceCellNetwork::publishExperienceMapEvent()
 {
     dolphin_slam::ExperienceEvent message;
 
-    std::vector<int> active_index(4);
+    std::vector<int> active_index(DIMS);
 
-    message.lv_cells_active_.resize(lv_cells_active_.size());
+    message.lv_cell_id_.resize(lv_cells_active_.size());
+    message.lv_cell_rate_.resize(lv_cells_active_.size());
     for(int i=0;i<lv_cells_active_.size();i++)
     {
-        message.lv_cells_active_[i].id_ =lv_cells_active_[i].id_;
-        message.lv_cells_active_[i].rate_ = lv_cells_active_[i].rate_;
+        message.lv_cell_id_[i] =lv_cells_active_[i].id_;
+        message.lv_cell_rate_[i] = lv_cells_active_[i].rate_;
     }
-
-    message.has_new_local_view_cell_ = has_new_local_view_cell_;
-
-    message.most_active_lv_cell_ = most_active_lv_cell_;
 
     message.traveled_distance_ = robot_pose_em_.response.traveled_distance_;
 
     message.ground_truth_ = robot_pose_em_.response.ground_truth_;
 
     //! set active index
-    getActiveNeuron(active_index);
 
-    message.pc_activity_.active_neuron_.resize(parameters_.number_of_neurons_.size());
-    std::copy(active_index.begin(),active_index.end(),message.pc_activity_.active_neuron_.begin());
-    message.pc_activity_.activation_level_ = neurons_(&active_index[0]);
+
+    message.pc_rate_ = getActiveNeuron(active_index);
+    message.pc_index_.resize(DIMS);
+    std::copy(active_index.begin(),active_index.end(),message.pc_index_.begin());
+
+    message.pc_activity_.number_of_neurons_.resize(DIMS);
+    std::copy(parameters_.number_of_neurons_.begin(),parameters_.number_of_neurons_.end(),message.pc_activity_.number_of_neurons_.begin());
+
+    message.pc_activity_.activity_.resize(neurons_.total());
+    std::copy(neurons_.begin(),neurons_.end(),message.pc_activity_.activity_.begin());
 
     experience_event_publisher_.publish(message);
 

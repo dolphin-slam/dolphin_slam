@@ -21,48 +21,36 @@ namespace dolphin_slam
 struct Experience
 {
     int id_;
-    int active_neuron_[4];    //!< \deprecated Neuron active on creation of experience
-    float activation_level_;
+    int pc_index_[3];    //!< Neuron active on creation of experience
 
-    int most_active_lv_cell_;
-    std::vector<Cell> lv_cells_;
-    cv::Mat_<float> pc_activity_;   //!< 4D Array of neurons
+    int lv_cell_id_;
 
     cv::Point3f position_;          //!< Estimated Pose of experience
     cv::Point3f ground_truth_;      //!< Real robot Pose on experience position
 
-    float rate_lv_;
-    float rate_pc_;
-    float rate_total_;
+    double rate_lv_;
+    double rate_pc_;
+    double rate_total_;
 
     void computeActivity(const ExperienceEventConstPtr &event)
     {
 
-        float distance_pc_index = 0;
-        for(int i = 0;i<event->pc_activity_.active_neuron_.size();i++)
-        {
-            distance_pc_index += pow(event->pc_activity_.active_neuron_[i] - active_neuron_[i],2);
-        }
+        //! pega o indice da place cell pertencente a experiência
+        int pc_index = pc_index_[0]*event->pc_activity_.number_of_neurons_[1]*event->pc_activity_.number_of_neurons_[2]+
+                pc_index_[1]*event->pc_activity_.number_of_neurons_[2]+
+                pc_index_[2];
 
-        //! Calcula o nível de ativação de acordo com a pose cell
-        //testa se a distancia entre as células é de no máximo uma em cada direção
-        if(distance_pc_index < event->pc_activity_.active_neuron_.size()) //nota-se que a distancia foi calculada ao quadrado
-        {
-            rate_pc_ = 1 - (activation_level_ - event->pc_activity_.activation_level_);
-        }
-        else
-        {
-            rate_pc_ = 0;
-        }
+        //! seta a taxa de ativação atual do neurônio
+        rate_pc_ = event->pc_activity_.activity_[pc_index];
 
-        //! Calcula o nível de ativação de acordo com a local view ativa
-        if(most_active_lv_cell_ == event->most_active_lv_cell_)
+        //! procura pelo id da local view na mensagem recebida. se encontrar, teremos a taxa de ativação.
+        rate_lv_ = 0;
+        for(int i=0;i<event->lv_cell_id_.size();i++)
         {
-            rate_lv_ = 1;
-        }
-        else
-        {
-            rate_lv_ = 0;
+            if(event->lv_cell_id_[i] == lv_cell_id_)
+            {
+                rate_lv_= event->lv_cell_rate_[i];
+            }
         }
 
         rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;

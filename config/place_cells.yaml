@@ -1,6 +1,9 @@
-number_of_neurons: [20, 20, 20]
+number_of_neurons: [10, 10, 10]
 distance_between_neurons: [ 0.25, 0.25, 0.25]
 
+
+#standard deviation of recurrent connections. Expressed in number of cells
+recurrent_connection_std: 2
 
 input_learning_rate: 0.25
 
@@ -11,5 +14,3 @@ local_view_activation_: 'multiple'
 #weighs function type: mexican_hat or gaussian
 weight_function: 'mexican_hat'
 
-#standard deviation of recurrent connections. Expressed in number of cells
-recurrent_connection_std: 2

@@ -1,0 +1,2 @@
+uint32 id_
+float64 rate_

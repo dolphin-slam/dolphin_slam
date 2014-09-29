@@ -1,3 +1,3 @@
+uint32[] number_of_neurons_
+float64[] activity_
 
-uint32[] active_neuron_
-float32 activation_level_

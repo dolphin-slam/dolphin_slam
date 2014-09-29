@@ -75,16 +75,20 @@ void ExperienceMap::createFirstExperience(const ExperienceEventConstPtr &event)
     experience_ptr->ground_truth_= cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
 
     //! Atribui o indice ativo da rede neural
-    std::copy(event->pc_activity_.active_neuron_.begin(),event->pc_activity_.active_neuron_.end(),experience_ptr->active_neuron_);
+    std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
 
-    //! Atribui as local view ativas
-    experience_ptr->lv_cells_.resize(event->lv_cells_active_.size());
-    for(int i=0;i<event->lv_cells_active_.size();i++)
+    int max_lv_id;
+    double max_lv_rate = 0;
+    for(int i=0;i<event->lv_cell_id_.size();i++)
     {
-        experience_ptr->lv_cells_[i].id_ = event->lv_cells_active_[i].id_;
-        experience_ptr->lv_cells_[i].rate_ = event->lv_cells_active_[i].rate_;
+        if(event->lv_cell_rate_[i] > max_lv_rate)
+        {
+            max_lv_rate = event->lv_cell_rate_[i];
+            max_lv_id = event->lv_cell_id_[i];
+        }
     }
-    experience_ptr->most_active_lv_cell_ = event->most_active_lv_cell_;
+
+    experience_ptr->lv_cell_id_ = max_lv_id;
 
     number_of_created_experiences_ = 1;
 }
@@ -161,16 +165,21 @@ void ExperienceMap::createNewExperience(const ExperienceEventConstPtr &event)
     experience_ptr->ground_truth_ = cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
 
     //! Atribui o indice ativo da rede neural
-    std::copy(event->pc_activity_.active_neuron_.begin(),event->pc_activity_.active_neuron_.end(),experience_ptr->active_neuron_);
+    std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
 
-    //! Atribui as local view ativas
-    experience_ptr->lv_cells_.resize(event->lv_cells_active_.size());
-    for(int i=0;i<event->lv_cells_active_.size();i++)
+    int max_lv_id;
+    double max_lv_rate = 0;
+    for(int i=0;i<event->lv_cell_id_.size();i++)
     {
-        experience_ptr->lv_cells_[i].id_ = event->lv_cells_active_[i].id_;
-        experience_ptr->lv_cells_[i].rate_ = event->lv_cells_active_[i].rate_;
+        if(event->lv_cell_rate_[i] > max_lv_rate)
+        {
+            max_lv_rate = event->lv_cell_rate_[i];
+            max_lv_id = event->lv_cell_id_[i];
+        }
     }
-    experience_ptr->most_active_lv_cell_ = event->most_active_lv_cell_;
+
+    experience_ptr->lv_cell_id_ = max_lv_id;
+
 
     number_of_created_experiences_++;
 
@@ -508,13 +517,9 @@ void ExperienceMap::createROSMessageError(dolphin_slam::Error &message)
     message.header.stamp = ros::Time::now();
     message.header.frame_id = "error";
 
-    //message.experience_map_error = localisationErrorEM_;
-    //message.dead_reckoning_error = localisationErrorDR_;
+    message.experience_map_error = localisationErrorEM_;
+    message.dead_reckoning_error = localisationErrorDR_;
 
-    static float last_index = 0;
-    message.experience_map_error = map_[current_experience_descriptor_].active_neuron_[0];
-    message.dead_reckoning_error = message.experience_map_error - last_index;
-    last_index = message.experience_map_error;
 }
 /*!
  * \brief Experience::createROSMessageMap
