@@ -60,6 +60,8 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.param<std::string>("weight_function",parameters_.weight_function_,"mexican_hat");
 
+    private_nh.param<int>("min_input_age",parameters_.min_input_age_,5);
+
 }
 
 void PlaceCellNetwork::createROSSubscribers()
@@ -245,8 +247,6 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
     }
     //cout << endl;
 
-
-
     experience_event_ = (most_active_lv_cell_ != message->most_active_id_);
 
     //! atualiza a local view mais ativa no momento
@@ -270,6 +270,8 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
             std::fill(it->begin(),it->end(),0.0);
         }
     }
+
+    std::cout << "max_view_template_id_ = " << max_view_template_id_ << "weight size = " << local_view_synaptic_weights_.size() << std::endl;
 
     update();
 
@@ -320,8 +322,8 @@ void PlaceCellNetwork::update()
 
     externalInput();
 
-    //! normaliza a atividade na rede
-    normalizeNetworkActivity();
+//    //! normaliza a atividade na rede
+//    normalizeNetworkActivity();
 
     //! publica as mensagens de saída
     if(experience_event_)
@@ -482,7 +484,7 @@ void PlaceCellNetwork::externalInput()
         {
             local_view_age = max_view_template_id_ - lv_cells_active_[lvc].id_;
 
-            if(local_view_age >= external_input_min_age_){
+            if(local_view_age >= parameters_.min_input_age_){
                 //! apply external inputs
                 neurons_ += lv_cells_active_[lvc].rate_ *
                         local_view_synaptic_weights_[lv_cells_active_[lvc].id_];
@@ -495,19 +497,10 @@ void PlaceCellNetwork::externalInput()
 
         local_view_age = max_view_template_id_ - most_active_lv_cell_;
 
-        if(local_view_age >= external_input_min_age_){
+        if(local_view_age >= parameters_.min_input_age_){
             //! apply external inputs
             neurons_ += local_view_synaptic_weights_[most_active_lv_cell_];
-
-            cout << "weight = ";
-            foreach(float weight, local_view_synaptic_weights_[most_active_lv_cell_])
-            {
-                cout << weight << " ";
-            }
-            cout << endl;
         }
-
-
     }
     else
     {
@@ -763,7 +756,6 @@ void PlaceCellNetwork::learnExternalConnections()
 {
     int i,j,k;    //! indices da matriz de neuronios
     int index[3];
-
 
     if(parameters_.local_view_activation_ == "multiple"){
 

@@ -47,6 +47,7 @@ struct PlaceCellParameters
     double recurrent_connection_std_;
     std::string local_view_activation_;
     std::string weight_function_;
+    int min_input_age_;
 
 };
 
@@ -115,7 +116,6 @@ private:
     std::vector <LocalViewCell> lv_cells_active_;
     std::vector<cv::Mat_<double> > local_view_synaptic_weights_;    //!< matriz de pesos das conexões de entrada
     int max_view_template_id_;
-    int external_input_min_age_;
 
 
     //! CANN
