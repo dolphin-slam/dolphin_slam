@@ -43,6 +43,7 @@ struct Experience
         //! seta a taxa de ativação atual do neurônio
         rate_pc_ = event->pc_activity_.activity_[pc_index];
 
+
         //! procura pelo id da local view na mensagem recebida. se encontrar, teremos a taxa de ativação.
         rate_lv_ = 0;
         for(int i=0;i<event->lv_cell_id_.size();i++)
@@ -50,10 +51,13 @@ struct Experience
             if(event->lv_cell_id_[i] == lv_cell_id_)
             {
                 rate_lv_= event->lv_cell_rate_[i];
+                std::cout << "exp_id = " << id_ << "rates = " << rate_lv_ << " " << rate_pc_ << " " << rate_total_ << std::endl;
             }
         }
 
         rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
+
+        //std::cout << "exp_id = " << id_ << "rates = " << rate_lv_ << " " << rate_pc_ << " " << rate_total_ << std::endl;
     }
 
 };

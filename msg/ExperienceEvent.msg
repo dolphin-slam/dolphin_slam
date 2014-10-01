@@ -5,6 +5,7 @@ sensor_msgs/Image image_
 float64[] histogram_
 
 # Active Local View Cells
+uint32 most_active_lv_cell_id_
 uint32[] lv_cell_id_
 float64[] lv_cell_rate_
 

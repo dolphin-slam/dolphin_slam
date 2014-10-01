@@ -232,13 +232,19 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
 {
     ROS_DEBUG_STREAM("ViewTemplate Message Received ");
 
+    //cout << "lcv_active = ";
+
     lv_cells_active_.resize(message->cell_id_.size());
     for(int i=0;i< lv_cells_active_.size(); i++)
     {
         lv_cells_active_[i].id_ = message->cell_id_[i];
         lv_cells_active_[i].rate_ = message->cell_rate_[i];
         lv_cells_active_[i].active_ = true;
+
+        //cout << lv_cells_active_[i].id_ << " " << lv_cells_active_[i].rate_ << " ";
     }
+    //cout << endl;
+
 
 
     experience_event_ = (most_active_lv_cell_ != message->most_active_id_);
@@ -246,7 +252,7 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
     //! atualiza a local view mais ativa no momento
     most_active_lv_cell_ = message->most_active_id_;
 
-    cout << "view template id = " << most_active_lv_cell_ << endl;
+    //cout << "view template id = " << most_active_lv_cell_ << endl;
 
     max_view_template_id_ = std::max(max_view_template_id_,most_active_lv_cell_);
 
@@ -261,7 +267,7 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
         {
             //! Create a four dimension excitatory matrix
             it->create(DIMS,&parameters_.number_of_neurons_[0]);
-            std::fill(it->begin(),it->end(),0);
+            std::fill(it->begin(),it->end(),0.0);
         }
     }
 
@@ -308,6 +314,9 @@ void PlaceCellNetwork::update()
 
     //! realiza a integração de caminho na cann
     pathIntegration();
+
+    //! normaliza a atividade na rede
+    normalizeNetworkActivity();
 
     externalInput();
 
@@ -753,15 +762,13 @@ void PlaceCellNetwork::pathIntegration()
 void PlaceCellNetwork::learnExternalConnections()
 {
     int i,j,k;    //! indices da matriz de neuronios
-    int index[4];
-    float weight;
+    int index[3];
 
 
     if(parameters_.local_view_activation_ == "multiple"){
 
         //! lvc = local view cell
         foreach (LocalViewCell& lvc, lv_cells_active_) {
-
 
             //! para cada neuronio da matriz
             for(i=0;i<parameters_.number_of_neurons_[0];i++)
@@ -776,7 +783,7 @@ void PlaceCellNetwork::learnExternalConnections()
                         //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
                         local_view_synaptic_weights_[lvc.id_](index) =
                                 std::max(local_view_synaptic_weights_[lvc.id_](index),
-                                learning_constant_ * lvc.rate_ * neurons_(index));
+                                parameters_.input_learning_rate_ * lvc.rate_ * neurons_(index));
 
                     }
                 }
@@ -798,7 +805,7 @@ void PlaceCellNetwork::learnExternalConnections()
                     //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
                     local_view_synaptic_weights_[most_active_lv_cell_](index) =
                             std::max(local_view_synaptic_weights_[most_active_lv_cell_](index),
-                            learning_constant_ * neurons_(index));
+                            parameters_.input_learning_rate_ * neurons_(index));
 
                 }
             }
@@ -834,7 +841,7 @@ double PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
 {
     double max_activity = 0;
     int i,j,k;
-    int index[4];
+    int index[DIMS];
 
     //! \todo otimizar essa funçao
 
@@ -956,6 +963,7 @@ void PlaceCellNetwork::publishExperienceMapEvent()
 
     std::vector<int> active_index(DIMS);
 
+    message.most_active_lv_cell_id_ = most_active_lv_cell_;
     message.lv_cell_id_.resize(lv_cells_active_.size());
     message.lv_cell_rate_.resize(lv_cells_active_.size());
     for(int i=0;i<lv_cells_active_.size();i++)

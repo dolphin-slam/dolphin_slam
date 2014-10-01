@@ -124,8 +124,6 @@ private:
 
     cv::Mat_<double> recurrent_excitatory_weights_; //!< Matriz dos pesos de excitação.
     std::vector<int> active_index_;
-    double k_external_activation_;
-    double learning_constant_;
 
 
     //RobotState robot_state_;    //! Stores the travelled distance between updates

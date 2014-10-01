@@ -73,18 +73,9 @@ void ExperienceMap::createFirstExperience(const ExperienceEventConstPtr &event)
     //! Atribui o indice ativo da rede neural
     std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
 
-    int max_lv_id;
-    double max_lv_rate = 0;
-    for(int i=0;i<event->lv_cell_id_.size();i++)
-    {
-        if(event->lv_cell_rate_[i] > max_lv_rate)
-        {
-            max_lv_rate = event->lv_cell_rate_[i];
-            max_lv_id = event->lv_cell_id_[i];
-        }
-    }
+    experience_ptr->lv_cell_id_ = event->most_active_lv_cell_id_;
+    experience_ptr->rate_total_ = experience_ptr->rate_lv_ = experience_ptr->rate_pc_ = 1.0;
 
-    experience_ptr->lv_cell_id_ = max_lv_id;
 
     number_of_created_experiences_ = 1;
 }
@@ -163,18 +154,9 @@ void ExperienceMap::createNewExperience(const ExperienceEventConstPtr &event)
     //! Atribui o indice ativo da rede neural
     std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
 
-    int max_lv_id;
-    double max_lv_rate = 0;
-    for(int i=0;i<event->lv_cell_id_.size();i++)
-    {
-        if(event->lv_cell_rate_[i] > max_lv_rate)
-        {
-            max_lv_rate = event->lv_cell_rate_[i];
-            max_lv_id = event->lv_cell_id_[i];
-        }
-    }
+    experience_ptr->lv_cell_id_ = event->most_active_lv_cell_id_;
 
-    experience_ptr->lv_cell_id_ = max_lv_id;
+    experience_ptr->rate_total_ = experience_ptr->rate_lv_ = experience_ptr->rate_pc_ = 1.0;
 
 
     number_of_created_experiences_++;
@@ -220,15 +202,14 @@ bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, Experie
     bool match_found = false;
 
 
-    std::cout << "nexp = " << boost::num_vertices(map_) << " experience_rate";
+    //std::cout << "nexp = " << boost::num_vertices(map_) << " experience_rate";
     //! iterar por todas as experiências em busca de um match
     foreach (ExperienceDescriptor exp, boost::vertices(map_)) {
         map_[exp].computeActivity(event);
 
-        std::cout << map_[exp].rate_total_ << " " ;
-
         if(map_[exp].rate_total_ > parameters_.match_threshold_)
         {
+            std::cout << "exp id = " << map_[exp].id_ << std::endl;
             match_found = true;
             if(map_[exp].rate_total_ > greatest_activity)
             {
@@ -238,8 +219,12 @@ bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, Experie
         }
 
     }
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
+    if(match_found)
+    {
+        std::cout << "Experience match found" << std::endl;
+    }
 
     return match_found;
 }
@@ -269,6 +254,8 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
             number_of_recognized_experiences_++;
             ROS_DEBUG_STREAM_NAMED("em","Encontrou experiencia similar: ID atual = " << map_[current_experience_descriptor_].id_ <<
                                    "ID match = " << map_[similar_experience].id_);
+            std::cout << "Match: " << map_[current_experience_descriptor_].id_ <<
+                                   " -> " << map_[similar_experience].id_ << std::endl;
             linkSimilarExperience(event,similar_experience);
         }
         else
@@ -281,7 +268,7 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     createDeadReckoning(event);
 
-    iterateMap();
+    //iterateMap();
 
     time_monitor_.finish();
 
@@ -474,9 +461,9 @@ void ExperienceMap::createROSMessageGroundTruth(visualization_msgs::Marker & mes
     message.pose.orientation.z = 0.0;
     message.pose.orientation.w = 1.0;
 
-    message.scale.x = 0.1;
-    message.scale.y = 0.1;
-    message.scale.z = 0.1;
+    message.scale.x = 0.025;
+    message.scale.y = 0.025;
+    message.scale.z = 0.025;
 
     //! configura a cor dos marcadores
     message.color.r = 0.0;
@@ -549,9 +536,9 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
     message.pose.orientation.z = 0.0;
     message.pose.orientation.w = 1.0;
 
-    message.scale.x = 0.1;
-    message.scale.y = 0.1;
-    message.scale.z = 0.1;
+    message.scale.x = 0.025;
+    message.scale.y = 0.025;
+    message.scale.z = 0.025;
 
     //! configura a cor dos marcadores
     message.color.r = 0.0;
@@ -602,7 +589,7 @@ void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & m
 
     //! configura o tipo e a ação tomada pela mensagem
     message.type = visualization_msgs::Marker::LINE_STRIP;
-    //    message.type = visualization_msgs::Marker::POINTS;
+    //message.type = visualization_msgs::Marker::POINTS;
     message.action = visualization_msgs::Marker::ADD;
     message.ns = "dead_reckoning_map";
     message.id = 0;
@@ -617,9 +604,9 @@ void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & m
     message.pose.orientation.z = 0.0;
     message.pose.orientation.w = 1.0;
 
-    message.scale.x = 0.1;
-    message.scale.y = 0.1;
-    message.scale.z = 0.1;
+    message.scale.x = 0.025;
+    message.scale.y = 0.025;
+    message.scale.z = 0.025;
 
     //! configura a cor dos marcadores
     message.color.r = 1.0;
