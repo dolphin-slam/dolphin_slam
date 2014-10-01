@@ -10,7 +10,7 @@ input_learning_rate: 0.75
 min_input_age: 5
 
 #local view activation: multiple or single
-local_view_activation_: 'multiple'
+local_view_activation_: 'single'
 
 
 #weighs function type: mexican_hat or gaussian

@@ -323,7 +323,7 @@ void PlaceCellNetwork::update()
     externalInput();
 
 //    //! normaliza a atividade na rede
-//    normalizeNetworkActivity();
+    normalizeNetworkActivity();
 
     //! publica as mensagens de saída
     if(experience_event_)
@@ -757,11 +757,11 @@ void PlaceCellNetwork::learnExternalConnections()
     int i,j,k;    //! indices da matriz de neuronios
     int index[3];
 
+    std::cout << "parameters_.input_learning_rate_  "<< parameters_.input_learning_rate_ << std::endl;
+
     if(parameters_.local_view_activation_ == "multiple"){
-
-        //! lvc = local view cell
-        foreach (LocalViewCell& lvc, lv_cells_active_) {
-
+        for(int lvc=0;lvc<lv_cells_active_.size();lvc++)
+        {
             //! para cada neuronio da matriz
             for(i=0;i<parameters_.number_of_neurons_[0];i++)
             {
@@ -771,18 +771,16 @@ void PlaceCellNetwork::learnExternalConnections()
                     {
 
                         index[0]=i;  index[1]=j;  index[2]=k;
-                        //                    delta_weight = learning_constant_* neurons_(index);
-                        //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
-                        local_view_synaptic_weights_[lvc.id_](index) =
-                                std::max(local_view_synaptic_weights_[lvc.id_](index),
-                                parameters_.input_learning_rate_ * lvc.rate_ * neurons_(index));
-
+                        local_view_synaptic_weights_[lv_cells_active_[lvc].id_](index) =
+                                std::max(local_view_synaptic_weights_[lv_cells_active_[lvc].id_](index),
+                                parameters_.input_learning_rate_ * lv_cells_active_[lvc].rate_ * neurons_(index));
                     }
                 }
             }
 
         }
-    }else
+    }
+    else
     {
         //! para cada neuronio da matriz
         for(i=0;i<parameters_.number_of_neurons_[0];i++)
@@ -793,8 +791,6 @@ void PlaceCellNetwork::learnExternalConnections()
                 {
 
                     index[0]=i;  index[1]=j;  index[2]=k;
-                    //                    delta_weight = learning_constant_* neurons_(index);
-                    //                    local_view_synaptic_weights_[view_template_id_](index) += delta_weight;
                     local_view_synaptic_weights_[most_active_lv_cell_](index) =
                             std::max(local_view_synaptic_weights_[most_active_lv_cell_](index),
                             parameters_.input_learning_rate_ * neurons_(index));
@@ -822,8 +818,11 @@ void PlaceCellNetwork::limitNetworkActivity()
 void PlaceCellNetwork::normalizeNetworkActivity()
 {
     double max = *std::max_element(neurons_.begin(),neurons_.end());
+
+
     neurons_ /= max;
 
+    std::cout << "max activity = " << max << std::endl;
     //    float sum = std::accumulate(neurons_.begin(),neurons_.end(),0.0f);
     //    neurons_ /= sum;
 }
