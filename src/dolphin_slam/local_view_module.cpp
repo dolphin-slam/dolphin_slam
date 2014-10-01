@@ -79,6 +79,9 @@ void LocalViewModule::publishOutput(){
 
     output_message_.header.stamp = ros::Time::now();
 
+    output_message_.cell_id_.clear();
+    output_message_.cell_rate_.clear();
+
     if(parameters_.local_view_activation_ == "single")
     {
         BOOST_FOREACH(LocalViewCell &lvc,cells_)

@@ -34,11 +34,7 @@ ExperienceMap::ExperienceMap()
 
 void ExperienceMap::loadParameters()
 {
-    double match_threshold;
-    node_handle_.param<double>("match_threshold",match_threshold,0.8);
-
-
-
+    node_handle_.param<double>("match_threshold",parameters_.match_threshold_,0.8);
 
 
 }
@@ -223,9 +219,13 @@ bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, Experie
     float greatest_activity = 0;
     bool match_found = false;
 
+
+    std::cout << "nexp = " << boost::num_vertices(map_) << " experience_rate";
     //! iterar por todas as experiências em busca de um match
     foreach (ExperienceDescriptor exp, boost::vertices(map_)) {
         map_[exp].computeActivity(event);
+
+        std::cout << map_[exp].rate_total_ << " " ;
 
         if(map_[exp].rate_total_ > parameters_.match_threshold_)
         {
@@ -238,6 +238,8 @@ bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, Experie
         }
 
     }
+    std::cout << std::endl;
+
 
     return match_found;
 }
@@ -262,14 +264,14 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
     }
     else
     {
-//        if(lookForMatches(event,similar_experience))
-//        {
-//            number_of_recognized_experiences_++;
-//            ROS_DEBUG_STREAM_NAMED("em","Encontrou experiencia similar: ID atual = " << map_[current_experience_descriptor_].id_ <<
-//                                   "ID match = " << map_[similar_experience].id_);
-//            linkSimilarExperience(event,similar_experience);
-//        }
-//        else
+        if(lookForMatches(event,similar_experience))
+        {
+            number_of_recognized_experiences_++;
+            ROS_DEBUG_STREAM_NAMED("em","Encontrou experiencia similar: ID atual = " << map_[current_experience_descriptor_].id_ <<
+                                   "ID match = " << map_[similar_experience].id_);
+            linkSimilarExperience(event,similar_experience);
+        }
+        else
         {
             number_of_created_experiences_++;
             createNewExperience(event);

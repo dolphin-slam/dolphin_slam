@@ -35,7 +35,7 @@ void load_parameters(Parameters &parameters)
     private_nh_.param<int>("surf_threshold",parameters.surf_threshold_,100);
 
     //! int bof_groups;
-    private_nh_.param<int>("bof_group",parameters.bof_group_,100);
+    private_nh_.param<int>("bof_groups",parameters.bof_group_,100);
 
     //! implementar isto para treinar varios grupos
 //    private_nh.getParam("bof_groups",parameters.bof_groups_);

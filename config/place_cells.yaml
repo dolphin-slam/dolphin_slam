@@ -3,9 +3,9 @@ distance_between_neurons: [ 0.25, 0.25, 0.25]
 
 
 #standard deviation of recurrent connections. Expressed in number of cells
-recurrent_connection_std: 2
+recurrent_connection_std: 3
 
-input_learning_rate: 0.25
+input_learning_rate: 1
 
 #local view activation: multiple or single
 local_view_activation_: 'multiple'

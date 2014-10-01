@@ -241,7 +241,7 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
     }
 
 
-    experience_event_ = (most_active_lv_cell_ == message->most_active_id_);
+    experience_event_ = (most_active_lv_cell_ != message->most_active_id_);
 
     //! atualiza a local view mais ativa no momento
     most_active_lv_cell_ = message->most_active_id_;
@@ -309,7 +309,7 @@ void PlaceCellNetwork::update()
     //! realiza a integração de caminho na cann
     pathIntegration();
 
-    //externalInput();
+    externalInput();
 
     //! normaliza a atividade na rede
     normalizeNetworkActivity();
@@ -447,7 +447,8 @@ void PlaceCellNetwork::excite()
                 //! preenche os indices em um vetor
                 index[0]=i;  index[1]=j;  index[2]=k;
                 //! \todo descobrir pq ue diminui o neuronio atual
-                neurons_(index) = std::max(aux_neurons_(index) - neurons_(index),0.0);
+                //neurons_(index) = std::max(aux_neurons_(index) - neurons_(index),0.0);
+                neurons_(index) = std::max(aux_neurons_(index),0.0);
             }
         }
     }
