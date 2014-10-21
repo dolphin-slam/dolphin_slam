@@ -37,7 +37,7 @@ struct LocalViewCell
 
 struct LocalViewParameters
 {
-    double similarity_threshold;
+    double similarity_threshold_;
     std::string local_view_activation_;
 };
 

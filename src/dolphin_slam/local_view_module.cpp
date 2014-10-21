@@ -36,7 +36,7 @@ void LocalViewModule::loadParameters()
 {
     ros::NodeHandle private_nh("~");
 
-    private_nh.param<double>("similarity_threshold",parameters_.similarity_threshold,0.85);
+    private_nh.param<double>("similarity_threshold",parameters_.similarity_threshold_,0.85);
 
     private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
@@ -205,7 +205,7 @@ void LocalViewModule::computeRate(const cv::Mat & histogram)
 
         cell.rate_ = cv::compareHist(cell.data_,histogram,CV_COMP_CORREL);
 
-        if(cell.rate_ > parameters_.similarity_threshold)
+        if(cell.rate_ > parameters_.similarity_threshold_)
         {
             cell.active_ = true;
             has_active_cell = true;

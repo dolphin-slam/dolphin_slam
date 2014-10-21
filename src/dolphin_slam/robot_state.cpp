@@ -42,7 +42,7 @@ void RobotState::createROSSubscribers()
 
 void RobotState::createROSServices()
 {
-    pc_service__ = node_handle_.advertiseService("robot_state_pc", &RobotState::pcService,this);
+    pc_service_ = node_handle_.advertiseService("robot_state_pc", &RobotState::pcService,this);
     em_service_= node_handle_.advertiseService("robot_state_em", &RobotState::emService,this);
 }
 
