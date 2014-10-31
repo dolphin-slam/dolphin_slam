@@ -84,7 +84,7 @@ private:
     boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor;
 
     //! ROS Services
-    ros::ServiceServer pc_service__;
+    ros::ServiceServer pc_service_;
     ros::ServiceServer em_service_;
 
     //! Variáveis de controle para a primeira iteração
