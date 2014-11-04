@@ -62,6 +62,8 @@ add_message_files(
    ExperienceEvent.msg
    PlaceCellActivity.msg
    Error.msg
+   Descriptor.msg
+   Descriptors.msg
 )
 
 ## Generate services in the 'srv' folder

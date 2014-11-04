@@ -1,17 +1,20 @@
 #ifndef IMAGE_PROCESSING_H
 #define IMAGE_PROCESSING_H
 
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <string>
 #include <image_transport/image_transport.h>
-#include <bag_of_features.h>
-#include <opencv/cv.h>
-#include <dolphin_slam/ImageHistogram.h>
+#include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
 
+#include <opencv/cv.h>
+#include <opencv2/nonfree/features2d.hpp>
+#include <opencv2/features2d/features2d.hpp>
+
+#include <string>
 #include <fstream>
+#include <vector>
 
+#include <dolphin_slam/Descriptors.h>
 
 using namespace std;
 
@@ -30,11 +33,10 @@ namespace dolphin_slam
 struct ImageProcessingParameters
 {
     int surf_threshold_; //! quanto menor o threshold, maior o número de keypoints encontrados.
-    int bof_groups_;
-    string bof_vocabulary_path_;
     string image_topic_;
     string image_transport_;
-    string output_topic_;
+    string descriptors_topic_;
+    string image_keypoints_topic_;
     int frames_to_jump_;
 };
 
@@ -52,29 +54,32 @@ public:
     void createROSSubscribers();
     void createROSPublishers();
 
+    void publishImageKeypoints();
+    void publishDescriptors();
+
 private:
 
-    //Bag of Features related code
-    bool computeBoFHistogram();
-    bool initBoF();
-    void publishOutput();
-
-    bool update();
+    bool init();
 
     std::ofstream log_file_;
 
-    BoF bag_of_features_;
+    cv::Ptr<cv::SURF> surf_;
 
     ImageProcessingParameters parameters_;
 
     ros::NodeHandle node_handle_;
-    ros::Publisher output_publisher_;
+
+    ros::Publisher descriptors_publisher_;
+
+    image_transport::ImageTransport it_;
+    image_transport::Publisher image_publisher_;
     image_transport::Subscriber image_subscriber_;
 
+    cv::Mat descriptors_;
+    std::vector<cv::KeyPoint> keypoints_;
 
-    cv_bridge::CvImageConstPtr current_image_;
-
-    cv::Mat current_histogram_;
+    cv_bridge::CvImageConstPtr image_;
+    int image_index_; //! to be defined in next versions
 
 };
 
