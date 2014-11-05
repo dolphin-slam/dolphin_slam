@@ -131,14 +131,24 @@ target_link_libraries(image_processing_node
     ${catkin_LIBRARIES}
 )
 
-
-
 ## Declare a cpp executable
 add_executable(bof_training
     src/bof_training.cpp
     src/dolphin_slam/bag_of_features.cpp
 )
 target_link_libraries(bof_training
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
+
+
+## Declare a cpp executable
+add_executable(fabmap_training
+    src/dolphin_slam/bow_descriptor_extractor.cpp
+    src/fabmap_training_node.cpp
+    src/dolphin_slam/fabmap_training.cpp
+)
+target_link_libraries(fabmap_training
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
 )
@@ -188,6 +198,7 @@ target_link_libraries(robot_state_node
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
+add_dependencies(fabmap_training dolphin_slam_generate_messages_cpp)
 add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
 add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
 add_dependencies(place_cell_node dolphin_slam_generate_messages_cpp)
