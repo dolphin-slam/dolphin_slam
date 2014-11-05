@@ -3,7 +3,10 @@
 
 #include <ros/ros.h>
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
+
 
 #include <fstream>
 
@@ -79,6 +82,10 @@ private:
     void publishError();
     void publishExecutionTime();
 
+    void listenTfGroundTruth();
+    void publishTfDeadReckoning();
+    void publishTfExperienceMap();
+
     ExperienceMapParameters parameters_;
 
     ExperienceDescriptor current_experience_descriptor_;
@@ -113,6 +120,18 @@ private:
     ros::Publisher execution_time_publisher_;
 
     ros::Subscriber experience_event_subscriber_;
+
+    //! Tf topics
+    tf::TransformBroadcaster odom_broadcaster_;
+    tf::TransformBroadcaster map_broadcaster_;
+    tf::TransformListener ground_truth_listener_;
+    tf::StampedTransform transform;
+
+    //! Tf broadcastable
+    geometry_msgs::TransformStamped odom_trans_;
+    geometry_msgs::TransformStamped ground_truth_trans_;
+    geometry_msgs::TransformStamped map_trans_;
+
 
     int max_id_experience_;
     int test_number_;

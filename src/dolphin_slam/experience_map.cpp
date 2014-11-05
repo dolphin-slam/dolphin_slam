@@ -277,7 +277,10 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
     calculeLocalisationError();
 
     publishExperienceMap();
+    publishTfExperienceMap();
     publishDeadReckoning();
+    publishTfDeadReckoning();
+    //listenTfGroundTruth();
     publishGroundTruth();
     publishError();
     publishExecutionTime();
@@ -489,6 +492,7 @@ void ExperienceMap::createROSMessageGroundTruth(visualization_msgs::Marker & mes
         i++;
     }
 
+
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
     //    int i=0;
@@ -527,7 +531,7 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
     message.id = 0;
 
     //! configura a pose dos marcadores
-    message.pose.position.x = 0.0 ;
+    message.pose.position.x = 0.0;
     message.pose.position.y = 0.0;
     message.pose.position.z = 0.0;
 
@@ -565,6 +569,10 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
         //OS_DEBUG_STREAM_NAMED("em","active neuroun = " << map_[e].active_neuron_[0] << " " <<map_[e].active_neuron_[1] << " " <<map_[e].active_neuron_[2] << " " <<map_[e].active_neuron_[3] );
         i++;
     }
+
+    map_trans_.transform.translation.x = message.points[i].x;
+    map_trans_.transform.translation.y = message.points[i].y;
+    map_trans_.transform.translation.z = message.points[i].z;
 
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
@@ -632,6 +640,13 @@ void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & m
         i++;
     }
 
+    //! Getting information for the tf
+    odom_trans_.transform.translation.x = message.points[i].x;
+    odom_trans_.transform.translation.y = message.points[i].y;
+    odom_trans_.transform.translation.z = message.points[i].z;
+    odom_trans_.header.stamp = message.header.stamp;
+
+
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
     //    int i=0;
@@ -656,6 +671,18 @@ void ExperienceMap::publishExperienceMap()
 }
 
 /*!
+ * \brief Function to publish Tf experience map
+ */
+void ExperienceMap::publishTfExperienceMap()
+{
+    //! Transform the message to fit the Tf
+    map_trans_.header.frame_id = "experience_map";
+    map_trans_.child_frame_id = "world";
+
+    map_broadcaster_.sendTransform(map_trans_);
+}
+
+/*!
  * \brief Function to publish ground truth
  */
 void ExperienceMap::publishGroundTruth()
@@ -666,6 +693,20 @@ void ExperienceMap::publishGroundTruth()
     ground_truth_publisher_.publish(message);
 }
 
+/*!
+ * \brief Function to list the ground truth from tf
+ */
+void ExperienceMap::listenTfGroundTruth()
+{
+    ground_truth_listener_.lookupTransform("/ground_truth", "/world", ros::Time(0), transform);
+    ground_truth_trans_.transform.translation.x = transform.getOrigin().x();
+    ground_truth_trans_.transform.translation.y = transform.getOrigin().y();
+    ground_truth_trans_.transform.translation.z = transform.getOrigin().z();
+}
+
+/*!
+ * \brief ExperienceMap::publishError
+ */
 void ExperienceMap::publishError()
 {
     dolphin_slam::Error message;
@@ -674,9 +715,8 @@ void ExperienceMap::publishError()
     error_publisher_.publish(message);
 }
 
-
 /*!
- * \brief Function to publish map
+ * \brief Function to publish dead reckoning
  */
 void ExperienceMap::publishDeadReckoning()
 {
@@ -685,6 +725,19 @@ void ExperienceMap::publishDeadReckoning()
 
     dead_reckoning_publisher_.publish(message);
 }
+
+/*!
+ * \brief Function to publish Tf dead reckoning
+ */
+void ExperienceMap::publishTfDeadReckoning()
+{
+    //! Transform the message to fit the tf
+    odom_trans_.header.frame_id = "odom";
+    odom_trans_.child_frame_id = "world";
+
+    odom_broadcaster_.sendTransform(odom_trans_);
+}
+
 
 
 /*!
