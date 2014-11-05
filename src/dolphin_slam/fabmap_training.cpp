@@ -113,8 +113,9 @@ void FabmapTraining::storeTrainingData()
     fs << "tree" << cl_tree_;
     fs.release();
 
-    fs.open(parameters_.bow_vocabulary_path_,cv::FileStorage::WRITE);
-    fs << "vocabulary" << bow_vocabulary_;
+    //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
+    fs.open(parameters_.bow_descriptors_path_,cv::FileStorage::WRITE);
+    //fs << "descriptors" << bow_descriptors_;
     fs.release();
 
 
