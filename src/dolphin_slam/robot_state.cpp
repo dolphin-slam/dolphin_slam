@@ -35,7 +35,7 @@ void RobotState::createROSSubscribers()
     DVL_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::DVLCallback,this);
     IMU_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::IMUCallback,this);
 
-    timer_ = node_handle_.createTimer(ros::Duration(1.0/6.0), &RobotState::tf2GroundTruthCallback, this);
+    timer_ = node_handle_.createTimer(ros::Duration(0.1), &RobotState::tf2GroundTruthCallback, this);
 }
 
 

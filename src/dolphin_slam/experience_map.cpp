@@ -36,7 +36,6 @@ void ExperienceMap::loadParameters()
 {
     node_handle_.param<double>("match_threshold",parameters_.match_threshold_,0.8);
 
-
 }
 
 void ExperienceMap::createROSSubscribers()
@@ -195,7 +194,6 @@ void ExperienceMap::linkSimilarExperience(const ExperienceEventConstPtr &event,E
 }
 
 
-
 bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, ExperienceDescriptor &similar_experience)
 {
     float greatest_activity = 0;
@@ -280,7 +278,6 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
     publishTfExperienceMap();
     publishDeadReckoning();
     publishTfDeadReckoning();
-    //listenTfGroundTruth();
     publishGroundTruth();
     publishError();
     publishExecutionTime();
