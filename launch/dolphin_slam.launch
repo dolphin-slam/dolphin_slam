@@ -2,7 +2,7 @@
 
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
 
-    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/Datasets/Ballester/girona_rotated.bag -q" required="false"/>
+    <node name="rosbag" pkg="rosbag" type="play" args="/home/ballester/datasets/girona/uw.bag -q" required="false"/>
     
 	<node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
 		<rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />
@@ -29,8 +29,8 @@
 
     <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
     <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="true"/>
-    <node name="image_view" pkg="image_view" type="image_view" args="image:=/image"  respawn="true"/>
-    <node name="template_view_node" pkg="template_view" type="template_view_node"/>
+    <node name="image_view" pkg="image_view" type="image_view" args="image:=/uwsim/camera1"  respawn="true"/>
+   <!-- <node name="template_view_node" pkg="template_view" type="template_view_node"/> -->
 
 
 </launch>

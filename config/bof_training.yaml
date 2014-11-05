@@ -1,6 +1,6 @@
-surf_threshold: 500
-bof_groups: 1000
+surf_threshold: 100
+bof_groups: 100
 frames_to_jump: 10
-bof_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/bof_vocabularies/'
+bof_vocabulary_path: '/home/ballester/hydro_ws/src/dolphin_slam/bof_vocabularies/'
 image_topic: '/image'
-#bag_file: '/home/ballester/datasets/girona/girona.bag'
+#bag_file: '/home/ballester/datasets/girona/uw.bag'

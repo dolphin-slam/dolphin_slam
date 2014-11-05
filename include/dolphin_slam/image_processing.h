@@ -9,6 +9,7 @@
 #include <opencv/cv.h>
 #include <dolphin_slam/ImageHistogram.h>
 #include <sensor_msgs/image_encodings.h>
+#include <iostream>
 
 #include <fstream>
 

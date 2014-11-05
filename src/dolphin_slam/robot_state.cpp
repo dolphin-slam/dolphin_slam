@@ -5,7 +5,7 @@ const float DVL_ERROR = 0.1;
 namespace dolphin_slam
 {
 
-RobotState::RobotState(): normal_(0,DVL_ERROR), var_nor(rng_, normal_)
+RobotState::RobotState(): normal_(0,DVL_ERROR), var_nor(rng_, normal_), ground_truth_tf2_listener_(buffer_)
 {
 
     has_ground_truth_ = has_dvl_ = has_imu_ = false;
@@ -25,7 +25,6 @@ void RobotState::loadParameters()
 
     ros::NodeHandle private_nh("~");
 
-
     private_nh.param<std::string>("dvl_topic", parameters_.dvl_topic_, "/g500/dvl");
     private_nh.param<std::string>("imu_topic", parameters_.imu_topic_, "/g500/imu");
     private_nh.param<std::string>("gt_topic", parameters_.gt_topic_, "/ground_truth");
@@ -35,8 +34,9 @@ void RobotState::createROSSubscribers()
 {
     DVL_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::DVLCallback,this);
     IMU_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::IMUCallback,this);
-    ground_truth_subscriber_ = node_handle_.subscribe(parameters_.gt_topic_,1,&RobotState::groundTruthCallback,this);
+//    ground_truth_subscriber_ = node_handle_.subscribe(parameters_.gt_topic_,1,&RobotState::groundTruthCallback,this);
 
+    timer_ = node_handle_.createTimer(ros::Duration(1.0/6.0), &RobotState::tf2GroundTruthCallback, this);
 }
 
 
@@ -45,6 +45,7 @@ void RobotState::createROSServices()
     pc_service_ = node_handle_.advertiseService("robot_state_pc", &RobotState::pcService,this);
     em_service_= node_handle_.advertiseService("robot_state_em", &RobotState::emService,this);
 }
+
 
 
 void RobotState::groundTruthCallback(const nav_msgs::OdometryConstPtr &message)
@@ -61,6 +62,19 @@ void RobotState::groundTruthCallback(const nav_msgs::OdometryConstPtr &message)
     ground_truth_.z = message->pose.pose.position.z - first_ground_truth_.z;
 
     has_ground_truth_ = true;
+}
+
+void RobotState::tf2GroundTruthCallback(const ros::TimerEvent& e)
+{
+    try
+    {
+        transform = buffer_.lookupTransform("world", "girona500", ros::Time(0));
+        std::cout << transform.transform.translation.x << " " << transform.transform.translation.y << " " << transform.transform.translation.z << " " << std::endl;
+    }
+    catch (tf2::TransformException ex )
+    {
+        ROS_ERROR("%s",ex.what());
+    }
 }
 
 void RobotState::computeTraveledDistances(float elapsed_time)

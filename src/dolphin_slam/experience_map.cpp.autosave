@@ -195,7 +195,6 @@ void ExperienceMap::linkSimilarExperience(const ExperienceEventConstPtr &event,E
 }
 
 
-
 bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, ExperienceDescriptor &similar_experience)
 {
     float greatest_activity = 0;

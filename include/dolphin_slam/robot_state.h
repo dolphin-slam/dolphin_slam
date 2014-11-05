@@ -4,6 +4,9 @@
 #include <ros/ros.h>
 
 #include <tf/tf.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <sensor_msgs/Imu.h>
 #include <underwater_sensor_msgs/DVL.h>
 
@@ -45,6 +48,9 @@ private:
     void IMUCallback(const sensor_msgs::ImuConstPtr &message);
     void groundTruthCallback(const nav_msgs::OdometryConstPtr &message);
 
+    //! Tf2 callbacks
+    void tf2GroundTruthCallback(const ros::TimerEvent &e);
+
     bool pcService(RobotPose::Request &req, RobotPose::Response &res);
     bool emService(RobotPose::Request &req, RobotPose::Response &res);
 
@@ -77,6 +83,17 @@ private:
     ros::Subscriber DVL_subscriber_;
     ros::Subscriber IMU_subscriber_;
     ros::Subscriber ground_truth_subscriber_;
+    ros::Timer timer_;
+
+    //! Tf2 Buffers
+    tf2_ros::Buffer buffer_;
+
+    //! Tf2 Listeners
+    tf2_ros::TransformListener ground_truth_tf2_listener_;
+
+    //! Tf2 Transforms
+    geometry_msgs::TransformStamped transform;
+
 
     //! Boost Randon Number Generator
     boost::mt19937 rng_; ///< Boost random number generator
