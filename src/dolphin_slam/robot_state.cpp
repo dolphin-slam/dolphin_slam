@@ -34,7 +34,6 @@ void RobotState::createROSSubscribers()
 {
     DVL_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::DVLCallback,this);
     IMU_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::IMUCallback,this);
-//    ground_truth_subscriber_ = node_handle_.subscribe(parameters_.gt_topic_,1,&RobotState::groundTruthCallback,this);
 
     timer_ = node_handle_.createTimer(ros::Duration(1.0/6.0), &RobotState::tf2GroundTruthCallback, this);
 }
@@ -69,7 +68,17 @@ void RobotState::tf2GroundTruthCallback(const ros::TimerEvent& e)
     try
     {
         transform = buffer_.lookupTransform("world", "girona500", ros::Time(0));
-        std::cout << transform.transform.translation.x << " " << transform.transform.translation.y << " " << transform.transform.translation.z << " " << std::endl;
+        if(!has_ground_truth_)
+        {
+            first_ground_truth_.x = transform.transform.translation.x;
+            first_ground_truth_.y = transform.transform.translation.y;
+            first_ground_truth_.z = transform.transform.translation.z;
+        }
+
+        ground_truth_.x = transform.transform.translation.x;
+        ground_truth_.y = transform.transform.translation.y;
+        ground_truth_.z = transform.transform.translation.z;
+
     }
     catch (tf2::TransformException ex )
     {
