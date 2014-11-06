@@ -6,6 +6,7 @@
 #include <tf/tf.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <sensor_msgs/Imu.h>
 #include <underwater_sensor_msgs/DVL.h>
@@ -38,6 +39,7 @@ public:
     void loadParameters();
     void createROSSubscribers();
     void createROSServices();
+    void createTfTimers();
 
 private:
     //! função para calcular a distancia percorrida
@@ -50,6 +52,7 @@ private:
 
     //! Tf2 callbacks
     void tf2GroundTruthCallback(const ros::TimerEvent &e);
+    void tf2DeadReckoningPublish(const ros::TimerEvent &e);
 
     bool pcService(RobotPose::Request &req, RobotPose::Response &res);
     bool emService(RobotPose::Request &req, RobotPose::Response &res);
@@ -83,7 +86,10 @@ private:
     ros::Subscriber DVL_subscriber_;
     ros::Subscriber IMU_subscriber_;
     ros::Subscriber ground_truth_subscriber_;
-    ros::Timer timer_;
+
+    //! ROS Timers
+    ros::Timer gt_listener_timer_;
+    ros::Timer dead_publisher_timer_;
 
     //! Tf2 Buffers
     tf2_ros::Buffer buffer_;
@@ -91,8 +97,12 @@ private:
     //! Tf2 Listeners
     tf2_ros::TransformListener ground_truth_tf2_listener_;
 
+    //! Tf2 Broadcasters
+    tf2_ros::TransformBroadcaster dead_reckoning_tf2_broadcaster_;
+
     //! Tf2 Transforms
-    geometry_msgs::TransformStamped transform;
+    geometry_msgs::TransformStamped gt_transform_;
+    geometry_msgs::TransformStamped dead_transform_;
 
 
     //! Boost Randon Number Generator
@@ -105,7 +115,7 @@ private:
     ros::ServiceServer em_service_;
 
     //! Variáveis de controle para a primeira iteração
-    bool has_imu_, has_ground_truth_,has_dvl_;
+    bool has_imu_, has_ground_truth_, has_dvl_;
 
 
 };

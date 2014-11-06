@@ -56,12 +56,12 @@ find_package(OpenCV REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
-#   ImageHistogram.msg
-#   ActiveLocalViewCells.msg
-#   ExecutionTime.msg
-#   ExperienceEvent.msg
-#   PlaceCellActivity.msg
-#   Error.msg
+   ImageHistogram.msg
+   ActiveLocalViewCells.msg
+   ExecutionTime.msg
+   ExperienceEvent.msg
+   PlaceCellActivity.msg
+   Error.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -113,64 +113,64 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
-# add_library(dolphin_slam
-#   src/${PROJECT_NAME}/dolphin_slam.cpp
-# )
+# Declare a cpp library
+#add_library(dolphin_slam
+#  src/${PROJECT_NAME}/dolphin_slam.cpp
+#)
 
 ## Declare a cpp executable
-#add_executable(image_processing_node
-#    src/image_processing_node.cpp
-#    src/dolphin_slam/image_processing.cpp
-#    src/dolphin_slam/bag_of_features.cpp
-#)
-#target_link_libraries(image_processing_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+add_executable(image_processing_node
+    src/image_processing_node.cpp
+    src/dolphin_slam/image_processing.cpp
+    src/dolphin_slam/bag_of_features.cpp
+)
+target_link_libraries(image_processing_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 
 
 ## Declare a cpp executable
-#add_executable(bof_training
-#    src/bof_training.cpp
-#    src/dolphin_slam/bag_of_features.cpp
-#)
-#target_link_libraries(bof_training
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+add_executable(bof_training
+    src/bof_training.cpp
+    src/dolphin_slam/bag_of_features.cpp
+)
+target_link_libraries(bof_training
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 ### Declare a cpp executable
-#add_executable(local_view_node
-#    src/local_view_node.cpp
-#    src/dolphin_slam/local_view_module.cpp
-#)
-#target_link_libraries(local_view_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+add_executable(local_view_node
+    src/local_view_node.cpp
+    src/dolphin_slam/local_view_module.cpp
+)
+target_link_libraries(local_view_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 #### Declare a cpp executable
-#add_executable(experience_map_node
-#    src/dolphin_slam/experience_map.cpp
-#    src/experience_map_node.cpp
-#)
+add_executable(experience_map_node
+    src/dolphin_slam/experience_map.cpp
+    src/experience_map_node.cpp
+)
 
-#target_link_libraries(experience_map_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+target_link_libraries(experience_map_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 #### Declare a cpp executable
-#add_executable(place_cell_node
-#    src/dolphin_slam/place_cell_network.cpp
-#    src/place_cell_node.cpp
-#)
-#target_link_libraries(place_cell_node
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#)
+add_executable(place_cell_node
+    src/dolphin_slam/place_cell_network.cpp
+    src/place_cell_node.cpp
+)
+target_link_libraries(place_cell_node
+    ${OpenCV_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 
 ### Declare a cpp executable
 add_executable(robot_state_node
@@ -186,14 +186,14 @@ target_link_libraries(robot_state_node
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-#add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
-#add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
-#add_dependencies(place_cell_node dolphin_slam_generate_messages_cpp)
+add_dependencies(local_view_node dolphin_slam_generate_messages_cpp)
+add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
+add_dependencies(place_cell_node dolphin_slam_generate_messages_cpp)
 add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(dolphin_slam_node dolphin_slam_generate_messages_cpp)
+#add_dependencies(dolphin_slam_node dolphin_slam_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(dolphin_slam_node

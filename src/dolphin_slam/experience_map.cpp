@@ -275,9 +275,7 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
     calculeLocalisationError();
 
     publishExperienceMap();
-    publishTfExperienceMap();
     publishDeadReckoning();
-    publishTfDeadReckoning();
     publishGroundTruth();
     publishError();
     publishExecutionTime();
@@ -486,7 +484,6 @@ void ExperienceMap::createROSMessageGroundTruth(visualization_msgs::Marker & mes
         i++;
     }
 
-
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
     //    int i=0;
@@ -565,10 +562,6 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
         i++;
     }
 
-    map_trans_.transform.translation.x = message.points[i].x;
-    map_trans_.transform.translation.y = message.points[i].y;
-    map_trans_.transform.translation.z = message.points[i].z;
-
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
     //    int i=0;
@@ -579,6 +572,10 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
     //        tf::pointTFToMsg(map[v2].pose.getOrigin(),message.points[i+1]);
     //    }
 
+    transform_map_.transform.translation.x = message.points[i].x;
+    transform_map_.transform.translation.y = message.points[i].y;
+    transform_map_.transform.translation.z = message.points[i].z;
+
 }
 
 /*!
@@ -586,6 +583,7 @@ void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
  */
 void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & message)
 {
+    std::cout << "AQUI" << std::endl;
     //! completa o cabeçalho da mensagem
     message.header.stamp = ros::Time::now();
     message.header.frame_id = "world";
@@ -635,12 +633,9 @@ void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & m
         i++;
     }
 
-    //! Getting information for the tf
-    odom_trans_.transform.translation.x = message.points[i].x;
-    odom_trans_.transform.translation.y = message.points[i].y;
-    odom_trans_.transform.translation.z = message.points[i].z;
-    odom_trans_.header.stamp = message.header.stamp;
-
+    transform_dead_.transform.translation.x = message.points[i].x;
+    transform_dead_.transform.translation.y = message.points[i].y;
+    transform_dead_.transform.translation.z = message.points[i].z;
 
     //    graph_traits<Map>::edge_iterator ei, ei_end;
     //    message.points.resize(2*num_edges(map));
@@ -663,6 +658,8 @@ void ExperienceMap::publishExperienceMap()
     createROSMessageMap(message);
 
     map_publisher_.publish(message);
+
+    publishTfExperienceMap();
 }
 
 /*!
@@ -671,10 +668,12 @@ void ExperienceMap::publishExperienceMap()
 void ExperienceMap::publishTfExperienceMap()
 {
     //! Transform the message to fit the Tf
-    map_trans_.header.frame_id = "experience_map";
-    map_trans_.child_frame_id = "world";
+    transform_map_.header.frame_id = "world";
+    transform_map_.child_frame_id = "experience_map";
 
-    map_broadcaster_.sendTransform(map_trans_);
+    std::cout << "trying experience_map" << std::endl;
+    experience_map_tf_broadcaster_.sendTransform(transform_map_);
+
 }
 
 /*!
@@ -686,17 +685,7 @@ void ExperienceMap::publishGroundTruth()
     createROSMessageGroundTruth(message);
 
     ground_truth_publisher_.publish(message);
-}
 
-/*!
- * \brief Function to list the ground truth from tf
- */
-void ExperienceMap::listenTfGroundTruth()
-{
-    ground_truth_listener_.lookupTransform("/ground_truth", "/world", ros::Time(0), transform);
-    ground_truth_trans_.transform.translation.x = transform.getOrigin().x();
-    ground_truth_trans_.transform.translation.y = transform.getOrigin().y();
-    ground_truth_trans_.transform.translation.z = transform.getOrigin().z();
 }
 
 /*!
@@ -719,20 +708,8 @@ void ExperienceMap::publishDeadReckoning()
     createROSMessageDeadReckoning(message);
 
     dead_reckoning_publisher_.publish(message);
+
 }
-
-/*!
- * \brief Function to publish Tf dead reckoning
- */
-void ExperienceMap::publishTfDeadReckoning()
-{
-    //! Transform the message to fit the tf
-    odom_trans_.header.frame_id = "odom";
-    odom_trans_.child_frame_id = "world";
-
-    odom_broadcaster_.sendTransform(odom_trans_);
-}
-
 
 
 /*!

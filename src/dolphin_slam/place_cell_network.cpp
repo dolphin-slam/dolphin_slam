@@ -90,9 +90,9 @@ void PlaceCellNetwork::createROSServices()
     robot_state_em_service.waitForExistence();
 }
 
-/*! \brief Function to alocate a matrix of neurons
-
-*/
+/*!
+ * \brief Function to alocate a matrix of neurons
+ */
 void PlaceCellNetwork::createNeurons()
 {
     neurons_.create(DIMS,&parameters_.number_of_neurons_[0]);
@@ -234,7 +234,7 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
 {
     ROS_DEBUG_STREAM("ViewTemplate Message Received ");
 
-    //cout << "lcv_active = ";
+//    cout << "lcv_active = ";
 
     lv_cells_active_.resize(message->cell_id_.size());
     for(int i=0;i< lv_cells_active_.size(); i++)

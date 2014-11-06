@@ -3,8 +3,9 @@
 
 #include <ros/ros.h>
 #include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 
 
@@ -82,7 +83,6 @@ private:
     void publishError();
     void publishExecutionTime();
 
-    void listenTfGroundTruth();
     void publishTfDeadReckoning();
     void publishTfExperienceMap();
 
@@ -116,22 +116,15 @@ private:
     ros::Publisher dead_reckoning_publisher_;
     ros::Publisher ground_truth_publisher_;
     ros::Publisher error_publisher_;
-
     ros::Publisher execution_time_publisher_;
-
     ros::Subscriber experience_event_subscriber_;
 
-    //! Tf topics
-    tf::TransformBroadcaster odom_broadcaster_;
-    tf::TransformBroadcaster map_broadcaster_;
-    tf::TransformListener ground_truth_listener_;
-    tf::StampedTransform transform;
+    //! Tf2 Broadcaster
+    tf2_ros::TransformBroadcaster experience_map_tf_broadcaster_;
 
-    //! Tf broadcastable
-    geometry_msgs::TransformStamped odom_trans_;
-    geometry_msgs::TransformStamped ground_truth_trans_;
-    geometry_msgs::TransformStamped map_trans_;
-
+    //! Geometry Messages for broadcasting
+    geometry_msgs::TransformStamped transform_dead_;
+    geometry_msgs::TransformStamped transform_map_;
 
     int max_id_experience_;
     int test_number_;

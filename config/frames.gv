@@ -1,0 +1,23 @@
+digraph G {
+"girona500/part2" -> "girona500/part3"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part1" -> "girona500/part2"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part4_base" -> "girona500/part4_jaw1"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part3" -> "girona500/part4_base"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/kinematic_base" -> "girona500/part1"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "girona500/kinematic_base"[label="Broadcaster: /rosbag\nAverage rate: 10.204 Hz\nMost recent transform: 1415035620.995 \nBuffer length: 4.900 sec\n"];
+"girona500/part4_base" -> "girona500/part4_jaw2"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/base_link" -> "girona500/part0"[label="Broadcaster: /rosbag\nAverage rate: 10.204 Hz\nMost recent transform: 1415035620.995 \nBuffer length: 4.900 sec\n"];
+"girona500" -> "girona500/base_link"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part4_base" -> "girona500/end_effector"[label="Broadcaster: /rosbag\nAverage rate: 10.204 Hz\nMost recent transform: 1415035620.995 \nBuffer length: 4.900 sec\n"];
+"world" -> "girona500"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "bowtech1"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "bowtech2"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "rangeImage"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "multibeam"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/base_link" -> "imu"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/part0" -> "sonar"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/base_link" -> "pressureSensor"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/base_link" -> "GPSSensor"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"girona500/base_link" -> "DVLSensor"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+"world" -> "terrain"[label="Broadcaster: /rosbag\nAverage rate: 10.203 Hz\nMost recent transform: 1415035620.487 \nBuffer length: 4.901 sec\n"];
+}
