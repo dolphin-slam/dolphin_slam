@@ -104,13 +104,12 @@ void ImageProcessing::publishDescriptors()
     msg.header.seq = image_->header.seq;
     msg.header.frame_id = image_->header.frame_id;
 
-    msg.descriptors.resize(descriptors_.rows);
-    for(int i = 0;i<descriptors_.rows;i++)
-    {
-        msg.descriptors[i].data.resize(descriptors_.cols);
-        descriptors_.row(i).copyTo(msg.descriptors[i].data);
-    }
+    msg.image_index_ = image_->header.seq;
 
+    msg.descriptor_count_ = descriptors_.rows;
+    msg.descriptor_length_ = descriptors_.cols;
+    msg.data_.resize(descriptors_.rows*descriptors_.cols);
+    std::copy(descriptors_.begin<float>(),descriptors_.end<float>(),msg.data_.begin());
     descriptors_publisher_.publish(msg);
 
 }

@@ -1,5 +1,11 @@
 #include "fabmap_training.h"
 #include "bow_descriptor_extractor.h"
+#include <utils.h>
+#include <boost/foreach.hpp>
+#include <iostream>
+
+namespace dolphin_slam
+{
 
 FabmapTraining::FabmapTraining()
 {
@@ -14,11 +20,12 @@ FabmapTraining::FabmapTraining()
 
 }
 
+
 void FabmapTraining::loadParameters()
 {
     ros::NodeHandle private_nh_("~");
 
-    private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"\descriptors");
+    private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
     private_nh_.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
 
@@ -37,20 +44,21 @@ void FabmapTraining::createROSSubscribers()
 
 void FabmapTraining::createROSTimers()
 {
-    timeout_ = node_handle_.createTimer(ros::Duration(5),&FabmapTraining::train,this,true);
+    timeout_ = node_handle_.createTimer(ros::Duration(5),&FabmapTraining::train,this,false);
 }
 
 void FabmapTraining::init()
 {
-    cl_trainer_ = new cv::of2::ChowLiuTree();
-
     bow_trainer_ = new cv::of2::BOWMSCTrainer(parameters_.cluster_size_);
+
+    cl_trainer_ = new cv::of2::ChowLiuTree();
 
 }
 
-void FabmapTraining::descriptorsCallback(const dolphin_slam::DescriptorConstPtr &msg)
+void FabmapTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &msg)
 {
-    cv::Mat descriptors(msg->data);
+    cv::Mat_<float> descriptors(msg->descriptor_count_,msg->descriptor_length_);
+    std::copy(msg->data_.begin(),msg->data_.end(),descriptors.begin());
 
     //! Stop the timeout
     timeout_.stop();
@@ -62,10 +70,13 @@ void FabmapTraining::descriptorsCallback(const dolphin_slam::DescriptorConstPtr 
     timeout_.start();
 }
 
+
 void FabmapTraining::train(const ros::TimerEvent &)
 {
 
     ROS_DEBUG_STREAM("Start training");
+
+    ROS_DEBUG_STREAM("Number of images: " << surf_descriptors_.size());
 
     bow_vocabulary_ = bow_trainer_->cluster();
 
@@ -88,8 +99,10 @@ void FabmapTraining::computeBoWDescriptors()
     //! Compute BoW descriptors
 
     BOWImgDescriptorExtractor extractor(cv::DescriptorMatcher::create("FlannBased")); //! \todo Usar a versao do opencv ao atualizar para o opencv 3.0
-
     cv::Mat image_descriptor;
+
+    extractor.setVocabulary(bow_vocabulary_);
+
 
     for(int i=0;i<surf_descriptors_.size();i++)
     {
@@ -115,8 +128,12 @@ void FabmapTraining::storeTrainingData()
 
     //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
     fs.open(parameters_.bow_descriptors_path_,cv::FileStorage::WRITE);
-    //fs << "descriptors" << bow_descriptors_;
+    cv::Mat_ <float>descriptors;
+    convert(bow_descriptors_,descriptors);
+    fs << "descriptors" << descriptors;
     fs.release();
 
+
+}
 
 }

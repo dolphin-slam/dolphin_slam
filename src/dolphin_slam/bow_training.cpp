@@ -19,11 +19,11 @@ void BoWTraining::loadParameters()
 {
     ros::NodeHandle private_nh_("~");
 
-    private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"\descriptors");
+    private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
     private_nh_.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
 
-    private_nh_.param<double>("cluster_size",parameters_.cluster_count_,0.4);
+    private_nh_.param<int>("cluster_count",parameters_.cluster_count_,100);
 }
 
 void BoWTraining::createROSSubscribers()
@@ -34,7 +34,7 @@ void BoWTraining::createROSSubscribers()
 
 void BoWTraining::createROSTimers()
 {
-    timeout_ = node_handle_.createTimer(ros::Duration(5),&BoWTraining::train,this,true);
+    timeout_ = node_handle_.createTimer(ros::Duration(5),&BoWTraining::train,this,false);
 }
 
 void BoWTraining::init()
@@ -46,9 +46,10 @@ void BoWTraining::init()
                                             cv::KMEANS_PP_CENTERS);
 }
 
-void BoWTraining::descriptorsCallback(const dolphin_slam::DescriptorConstPtr &msg)
+void BoWTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &msg)
 {
-    cv::Mat descriptors(msg->data);
+    cv::Mat_<float> descriptors(msg->descriptor_count_,msg->descriptor_length_);
+    std::copy(msg->data_.begin(),msg->data_.end(),descriptors.begin());
 
     //! Stop the timeout
     timeout_.stop();

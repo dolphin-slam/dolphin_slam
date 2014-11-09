@@ -4,8 +4,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc,argv,"training");
 
-    FabmapTraining training;
-
+    dolphin_slam::FabmapTraining training;
 
     ros::spin();
 

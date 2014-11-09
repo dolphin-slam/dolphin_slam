@@ -10,7 +10,7 @@ struct BoWTrainingParameters
 {
     std::string descriptors_topic_;
     std::string bow_vocabulary_path_;
-    double cluster_count_;
+    int cluster_count_;
 };
 
 class BoWTraining
@@ -26,7 +26,7 @@ public:
 
     void init();
 
-    void descriptorsCallback(const dolphin_slam::DescriptorConstPtr &msg);
+    void descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &msg);
 
     void train(const ros::TimerEvent&);
 

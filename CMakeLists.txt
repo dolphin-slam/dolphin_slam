@@ -62,7 +62,6 @@ add_message_files(
    ExperienceEvent.msg
    PlaceCellActivity.msg
    Error.msg
-   Descriptor.msg
    Descriptors.msg
 )
 
@@ -124,7 +123,6 @@ include_directories(
 add_executable(image_processing_node
     src/image_processing_node.cpp
     src/dolphin_slam/image_processing.cpp
-    src/dolphin_slam/bag_of_features.cpp
 )
 target_link_libraries(image_processing_node
     ${OpenCV_LIBRARIES}
@@ -132,21 +130,11 @@ target_link_libraries(image_processing_node
 )
 
 ## Declare a cpp executable
-add_executable(bof_training
-    src/bof_training.cpp
-    src/dolphin_slam/bag_of_features.cpp
-)
-target_link_libraries(bof_training
-    ${OpenCV_LIBRARIES}
-    ${catkin_LIBRARIES}
-)
-
-
-## Declare a cpp executable
 add_executable(bow_training
     src/bow_training_node.cpp
     src/dolphin_slam/bow_descriptor_extractor.cpp
     src/dolphin_slam/bow_training.cpp
+    src/dolphin_slam/utils.cpp
 )
 target_link_libraries(bow_training
     ${OpenCV_LIBRARIES}
@@ -156,6 +144,7 @@ target_link_libraries(bow_training
 
 ## Declare a cpp executable
 add_executable(fabmap_training
+    src/dolphin_slam/utils.cpp
     src/dolphin_slam/bow_descriptor_extractor.cpp
     src/fabmap_training_node.cpp
     src/dolphin_slam/fabmap_training.cpp
