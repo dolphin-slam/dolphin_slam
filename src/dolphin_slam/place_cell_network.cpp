@@ -247,10 +247,10 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
     }
     //cout << endl;
 
-    experience_event_ = (most_active_lv_cell_ != message->most_active_id_);
+    experience_event_ = (most_active_lv_cell_ != message->most_active_cell_);
 
     //! atualiza a local view mais ativa no momento
-    most_active_lv_cell_ = message->most_active_id_;
+    most_active_lv_cell_ = message->most_active_cell_;
 
     //cout << "view template id = " << most_active_lv_cell_ << endl;
 
