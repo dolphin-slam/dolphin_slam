@@ -1,0 +1,8 @@
+<launch>
+    <node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
+        <rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />
+    </node>
+
+    <node name="keypoints_view" pkg="image_view" type="image_view" args="image:=/image_keypoints"  respawn="true"/>
+
+</launch>

@@ -1,0 +1,3 @@
+    descriptors_topic: '/descriptors'
+    bow_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies/bow_vocabulary.xml'
+    cluster_count: 100

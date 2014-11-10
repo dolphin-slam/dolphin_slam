@@ -1,5 +1,7 @@
 #include "local_view_module.h"
 
+
+
 const float ROS_TIMER_STEP = 0.25;
 
 using std::endl;
@@ -15,13 +17,13 @@ LocalViewModule::LocalViewModule()
 
     start_stamp_ = ros::Time::now();
 
-
-
     loadParameters();
 
     createROSSubscribers();
 
     createROSPublishers();
+
+    init();
 
     log_file_.open("local_view.log");
 
@@ -40,22 +42,60 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
+    private_nh.param<std::string>("matching_algorithm",parameters_.matching_algorithm_,"histogram_correlation");
+
+    private_nh.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
+
+    private_nh.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
+
+    private_nh.param<std::string>("cltree_path",parameters_.cltree_path_,"cltree.xml");
+
+    private_nh.param<std::string>("bow_descriptors_path",parameters_.bow_descriptors_path_,"descriptors.xml");
+
 }
 
 void LocalViewModule::createROSSubscribers()
 {
-    image_histogram_subscriber_ = node_handle_.subscribe("/image_histogram",1,&LocalViewModule::callback,this);
-
+    descriptors_subscriber_ = node_handle_.subscribe("",1,&LocalViewModule::descriptors_callback,this);
 }
 
 void LocalViewModule::createROSPublishers()
 {
-    output_publisher_ = node_handle_.advertise<dolphin_slam::ActiveLocalViewCells>("local_view_cells",1);
+    active_cells_publisher_ = node_handle_.advertise<dolphin_slam::ActiveLocalViewCells>("local_view_cells",1);
 
     execution_time_publisher_ = node_handle_.advertise<dolphin_slam::ExecutionTime>("execution_time",1,false);
 }
 
 
+void LocalViewModule::init()
+{
+    cv::FileStorage fs;
+
+    fs.open(parameters_.bow_vocabulary_path_,cv::FileStorage::READ);
+    fs["vocabulary"] >> bow_vocabulary_;
+    fs.release();
+
+    fs.open(parameters_.cltree_path_,cv::FileStorage::READ);
+    fs["tree"] >> cltree_;
+    fs.release();
+
+    //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
+    fs.open(parameters_.bow_descriptors_path_,cv::FileStorage::READ);
+    fs["descriptors"] >> bow_training_descriptors_;
+    fs.release();
+
+    bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
+    bow_extractor_->setVocabulary(bow_vocabulary_);
+
+    fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU);
+
+    fabmap_->addTraining(bow_training_descriptors_);
+
+    //! Estudar se tem mais coisas a adicionar na inicialização
+    //! colocar os parametros de entrada do fabmap como parametros do ros.
+
+
+}
 
 
 void LocalViewModule::createROSTimers()
@@ -69,91 +109,23 @@ void LocalViewModule::timerCallback(const ros::TimerEvent& event)
 
 }
 
-/*!
-*   \brief Function to publish view template
-*/
-void LocalViewModule::publishOutput(){
 
-    double max_rate = 0;
-    int max_id;
 
-    output_message_.header.stamp = ros::Time::now();
-
-    output_message_.cell_id_.clear();
-    output_message_.cell_rate_.clear();
-
-    if(parameters_.local_view_activation_ == "single")
-    {
-        BOOST_FOREACH(LocalViewCell &lvc,cells_)
-        {
-            if(lvc.active_)
-            {
-                if(lvc.rate_ > max_rate)
-                {
-                    max_rate = lvc.rate_;
-                    max_id = lvc.id_;
-                }
-            }
-        }
-        output_message_.most_active_id_ = max_id;
-        output_message_.cell_id_.push_back(max_id);
-        output_message_.cell_rate_.push_back(max_rate);
-
-        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " " << max_id << " " << max_rate << endl;
-    }
-    else if(parameters_.local_view_activation_ == "multiple")
-    {
-        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " ";
-        BOOST_FOREACH(LocalViewCell &lvc,cells_)
-        {
-            if(lvc.active_)
-            {
-                if(lvc.rate_ > max_rate)
-                {
-                    max_rate = lvc.rate_;
-                    max_id = lvc.id_;
-                }
-                output_message_.cell_id_.push_back(lvc.id_);
-                output_message_.cell_rate_.push_back(lvc.rate_);
-                log_file_ << lvc.id_ << " " << lvc.rate_ << " " ;
-            }
-        }
-        log_file_ << endl;
-        output_message_.most_active_id_ = max_id;
-
-    }
-    else
-    {
-        ROS_ERROR("Wrong local view cell activation. Use single or multiple");
-    }
-
-    //! Publica a mensagem
-    output_publisher_.publish(output_message_);
-
-}
-
-/*!
-*   \brief Callback function
-*
-*   Receive an image and the corresponding histogram.
-*   Compute the local view cells activations.
-*/
-void LocalViewModule::callback(const dolphin_slam::ImageHistogramConstPtr &message)
+void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 {
 
     time_monitor_.start();
 
-    output_message_.image_ = message->image;
-    output_message_.histogram_ = message->histogram;
+    image_seq_ = msg->image_seq_;
+    image_stamp_ = msg->image_stamp_;
 
-    //! convert to opencv matrix
-    cv::Mat histogram(message->histogram);
+    // Copy descriptors into a cv::Mat
+    cv::Mat_<float> descriptors(msg->descriptor_count_,msg->descriptor_length_);
+    std::copy(msg->data_.begin(),msg->data_.end(),descriptors.begin());
 
-    ROS_DEBUG_STREAM("histogram = "<< histogram);
+    computeImgDescriptor(descriptors);
 
-    computeRate(histogram);
-
-    publishOutput();
+    computeMatches();
 
     time_monitor_.finish();
     time_monitor_.print();
@@ -161,6 +133,31 @@ void LocalViewModule::callback(const dolphin_slam::ImageHistogramConstPtr &messa
     execution_time = time_monitor_.getDuration();
 
     publishExecutionTime();
+
+}
+
+
+bool LocalViewModule::computeMatches()
+{
+    if(parameters_.matching_algorithm_ == "correlation")
+    {
+        computeCorrelations();
+    }
+    else if(parameters_.matching_algorithm_ == "fabmap")
+    {
+        computeFabmap();
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Matching algorithm is wrong.");
+        exit(0);
+    }
+
+    if(new_place_)
+    {
+        createNewCell();
+    }
+
 
 }
 
@@ -178,46 +175,138 @@ void LocalViewModule::publishExecutionTime()
 }
 
 
-int LocalViewModule::createNewCell(const cv::Mat & histogram)
+void LocalViewModule::computeCorrelations()
 {
+    new_place_ = false;
 
-    cells_.resize(cells_.size() + 1);
-    LocalViewCell* cell = &(*(cells_.end() - 1));
+    std::vector<LocalViewCell>::iterator cell_iterator_;
+    std::vector<LocalViewCell>::iterator best_match;
+    best_match = cells_.begin();
+    for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
+    {
+        cell_iterator_->rate_ = cv::compareHist(bow_descriptors_[cell_iterator_->id_],bow_current_descriptor_,CV_COMP_CORREL);
 
-    cell->id_ = cells_.size() - 1;
+        //! test activation against a similarity threshold;
+        cell_iterator_->active_ = (cell_iterator_->rate_ > parameters_.similarity_threshold_);
 
-    cell->rate_ = 1.0;
-    cell->active_ = true;
-    cell->data_ = histogram.clone();
+        new_place_ = new_place_ || cell_iterator_->active_;
 
-    ROS_DEBUG_STREAM("View Template created. ID = " << cell->id_);
-
-    return cell->id_;
-}
-
-
-
-void LocalViewModule::computeRate(const cv::Mat & histogram)
-{
-    bool has_active_cell = false;
-
-    foreach (LocalViewCell &cell, cells_){
-
-        cell.rate_ = cv::compareHist(cell.data_,histogram,CV_COMP_CORREL);
-
-        if(cell.rate_ > parameters_.similarity_threshold_)
+        //! compute best match
+        if(best_match->rate_ < cell_iterator_->rate_)
         {
-            cell.active_ = true;
-            has_active_cell = true;
-        }
-        else
-        {
-            cell.active_ = false;
+            best_match = cell_iterator_;
         }
     }
 
-    if(!has_active_cell)
-        createNewCell(histogram);
+
+    if(!new_place_)
+    {
+        best_match_id_ = best_match->id_;
+    }
+
+}
+
+void LocalViewModule::computeFabmap()
+{
+    std::vector<cv::of2::IMatch> imatch;
+
+    fabmap_->compare(bow_current_descriptor_,bow_descriptors_,imatch);
+
+    //! Test for new places
+    std::vector<cv::of2::IMatch>::iterator imatch_iterator, best_match;
+
+    best_match = imatch.begin();
+
+    for(imatch_iterator = imatch.begin();imatch_iterator != imatch.end();imatch_iterator++)
+    {
+        //! test if image index is valid index
+        if(imatch_iterator->imgIdx != -1)
+        {
+            //! store the match probability on the cell structure
+            cells_[imatch_iterator->imgIdx].rate_ = imatch_iterator->match;
+            cells_[imatch_iterator->imgIdx].active_ = false;
+        }
+
+        //! compute best match
+        if(best_match->match < imatch_iterator->match)
+        {
+            best_match = imatch_iterator;
+        }
+
+    }
+
+    new_place_ = (best_match->imgIdx == -1);
+
+    if(!new_place_)
+    {
+        best_match_id_ = best_match->imgIdx;
+    }
+
+
+
+}
+
+void LocalViewModule::createNewCell()
+{
+    LocalViewCell new_cell;
+
+    new_cell.id_ = cells_.size();
+    new_cell.rate_ = 1;
+    new_cell.active_ = true;
+
+    best_match_id_ = new_cell.id_;
+
+    cells_.push_back(new_cell);
+
+}
+
+
+void LocalViewModule::computeImgDescriptor(cv::Mat & descriptors)
+{
+    bow_extractor_->compute(descriptors,bow_current_descriptor_);
+}
+
+void LocalViewModule::publishActiveCells(){
+
+    ActiveLocalViewCells msg;
+
+    msg.header.stamp = ros::Time::now();
+
+    msg.image_seq_ = image_seq_;
+    msg.image_stamp_ = image_stamp_;
+
+    if(parameters_.local_view_activation_ == "single")
+    {
+        msg.most_active_cell_ = best_match_id_;
+        msg.cell_id_.push_back(best_match_id_);
+        msg.cell_rate_.push_back(cells_[best_match_id_].rate_);
+
+        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " " << best_match_id_ << " " << cells_[best_match_id_].rate_ << endl;
+    }
+    else if(parameters_.local_view_activation_ == "multiple")
+    {
+        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " ";
+
+        msg.most_active_cell_ = best_match_id_;
+        std::vector<LocalViewCell>::iterator cell_iterator_;
+        for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
+        {
+            if(cell_iterator_->active_)
+            {
+                msg.cell_id_.push_back(cell_iterator_->id_);
+                msg.cell_rate_.push_back(cell_iterator_->rate_);
+                log_file_ << cell_iterator_->id_ << " " << cell_iterator_->rate_ << " " ;
+            }
+        }
+        log_file_ << endl;
+    }
+    else
+    {
+        ROS_ERROR("Wrong local view cell activation. Use single or multiple");
+    }
+
+    active_cells_publisher_.publish(msg);
+
 }
 
 

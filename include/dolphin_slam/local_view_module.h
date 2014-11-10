@@ -8,9 +8,13 @@
 
 #include <dolphin_slam/ExecutionTime.h>
 #include <dolphin_slam/ActiveLocalViewCells.h>
-#include <dolphin_slam/ImageHistogram.h>
+#include <dolphin_slam/Descriptors.h>
 
-#include <opencv/cv.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/contrib/openfabmap.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+
+#include <dolphin_slam/bow_descriptor_extractor.h>
 
 #include <string>
 
@@ -27,20 +31,23 @@
 namespace dolphin_slam
 {
 
+struct LocalViewParameters
+{
+    double similarity_threshold_;
+    std::string local_view_activation_;
+    std::string matching_algorithm_;
+    std::string bow_vocabulary_path_;
+    std::string cltree_path_;
+    std::string bow_descriptors_path_;
+    std::string descriptors_topic_;
+};
+
 struct LocalViewCell
 {
     int id_;
     double rate_;
     bool active_;
-    cv::Mat data_;
 };
-
-struct LocalViewParameters
-{
-    double similarity_threshold_;
-    std::string local_view_activation_;
-};
-
 
 class LocalViewModule
 {
@@ -53,38 +60,53 @@ public:
     void createROSSubscribers();
     void createROSPublishers();
 
+    void init();
+
 
     void createROSTimers();
 
 private:
     //! ROS related functions
-    void callback(const dolphin_slam::ImageHistogramConstPtr &message);
-    int createNewCell(const cv::Mat &histogram);
-    void publishOutput();
+    void descriptors_callback(const dolphin_slam::DescriptorsConstPtr &msg);
+    void createNewCell();
     void publishExecutionTime();
+    void publishActiveCells();
 
     void timerCallback(const ros::TimerEvent &event);
 
-    void computeRate(const cv::Mat & histogram);
+    bool computeMatches();
+    void computeCorrelations();
+    void computeFabmap();
 
-    bool detectChanges();
-    bool detectChanges(const cv::Mat &image);
+    void computeImgDescriptor(cv::Mat &descriptors);
+    void compare();
 
     LocalViewParameters parameters_;
 
+
+    cv::Ptr<BOWImgDescriptorExtractor> bow_extractor_;//! \todo Usar a versao do opencv ao atualizar para o opencv 3.0
+    cv::Mat bow_vocabulary_;
+
+    cv::Ptr<cv::of2::FabMap> fabmap_;
+    cv::Mat cltree_;
+    cv::Mat bow_training_descriptors_;
+
+    cv::Mat bow_current_descriptor_;
+    std::vector<cv::Mat> bow_descriptors_;
     std::vector<LocalViewCell> cells_;
+    bool new_place_;
+    int best_match_id_;
+    int image_seq_;
+    ros::Time image_stamp_;
 
     ros::NodeHandle node_handle_;
-    ros::Subscriber image_histogram_subscriber_;
-    ros::Publisher output_publisher_;
+    ros::Subscriber descriptors_subscriber_;
+    ros::Publisher active_cells_publisher_;
     ros::Publisher execution_time_publisher_;
 
 
     std::ofstream log_file_;
-//    std::ofstream view_template_file_;
-//    std::ofstream local_view_file_;
 
-    ActiveLocalViewCells output_message_;
 
     TimeMonitor time_monitor_;
 

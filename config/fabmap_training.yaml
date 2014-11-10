@@ -1,0 +1,5 @@
+    descriptors_topic: '/descriptors'
+    bow_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies/bow_vocabulary.xml'
+    bow_descriptors_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies/bow_descriptors.xml'
+    cltree_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies/cltree.xml'
+    cluster_size: 0.4

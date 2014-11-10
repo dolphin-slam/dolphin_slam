@@ -1,7 +1,5 @@
 surf_threshold: 100
-bof_groups: 100
-bof_vocabulary_path: '/home/ballester/hydro_ws/src/dolphin_slam/bof_vocabularies/'
+bof_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/bof_vocabularies/'
 image_topic: '/uwsim/camera1'
 image_transport: 'raw'
-output_topic: '/image_histogram'
 frames_to_jump: 4
