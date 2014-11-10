@@ -158,6 +158,7 @@ target_link_libraries(fabmap_training
 add_executable(local_view_node
     src/local_view_node.cpp
     src/dolphin_slam/local_view_module.cpp
+    src/dolphin_slam/bow_descriptor_extractor.cpp
 )
 target_link_libraries(local_view_node
     ${OpenCV_LIBRARIES}

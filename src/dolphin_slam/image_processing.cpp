@@ -104,7 +104,8 @@ void ImageProcessing::publishDescriptors()
     msg.header.seq = image_->header.seq;
     msg.header.frame_id = image_->header.frame_id;
 
-    msg.image_index_ = image_->header.seq;
+    msg.image_seq_ = image_->header.seq;
+    msg.image_stamp_ = image_->header.stamp;
 
     msg.descriptor_count_ = descriptors_.rows;
     msg.descriptor_length_ = descriptors_.cols;
