@@ -108,14 +108,15 @@ private:
 
     PlaceCellParameters parameters_;
 
+    //! Current image
+    int image_seq_;
+    ros::Time image_stamp_;
+
     //! Local View
-    bool has_new_local_view_cell_;
-    int most_active_lv_cell_;
-    double lambda_learning_;
-    double max_energy_;
     std::vector <LocalViewCell> lv_cells_active_;
+    int most_active_lv_cell_;
     std::vector<cv::Mat_<double> > local_view_synaptic_weights_;    //!< matriz de pesos das conexões de entrada
-    int max_view_template_id_;
+    int lv_cell_count_;
 
 
     //! CANN
@@ -124,9 +125,6 @@ private:
 
     cv::Mat_<double> recurrent_excitatory_weights_; //!< Matriz dos pesos de excitação.
     std::vector<int> active_index_;
-
-
-    //RobotState robot_state_;    //! Stores the travelled distance between updates
 
     bool experience_event_;     //! variable to indicate a event to the experience map
 

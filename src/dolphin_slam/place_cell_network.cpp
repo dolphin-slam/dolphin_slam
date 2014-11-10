@@ -22,7 +22,7 @@ namespace dolphin_slam
 */
 PlaceCellNetwork::PlaceCellNetwork()
 {
-    max_view_template_id_ = 0;
+    lv_cell_count_ = 0;
     most_active_lv_cell_ = -1;
     robot_pose_pc_.request.reset = true;
     robot_pose_em_.request.reset = true;
@@ -232,9 +232,6 @@ void PlaceCellNetwork::createROSTimers()
 
 void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &message)
 {
-    ROS_DEBUG_STREAM("ViewTemplate Message Received ");
-
-//    cout << "lcv_active = ";
 
     lv_cells_active_.resize(message->cell_id_.size());
     for(int i=0;i< lv_cells_active_.size(); i++)
@@ -242,25 +239,20 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
         lv_cells_active_[i].id_ = message->cell_id_[i];
         lv_cells_active_[i].rate_ = message->cell_rate_[i];
         lv_cells_active_[i].active_ = true;
-
-        //cout << lv_cells_active_[i].id_ << " " << lv_cells_active_[i].rate_ << " ";
     }
-    //cout << endl;
 
     experience_event_ = (most_active_lv_cell_ != message->most_active_cell_);
 
     //! atualiza a local view mais ativa no momento
     most_active_lv_cell_ = message->most_active_cell_;
 
-    //cout << "view template id = " << most_active_lv_cell_ << endl;
-
-    max_view_template_id_ = std::max(max_view_template_id_,most_active_lv_cell_);
+    lv_cell_count_ = std::max(lv_cell_count_,most_active_lv_cell_);
 
     //! aloca novas posições na matriz de conexões caso ainda não existam
-    if((max_view_template_id_+1) > static_cast<int>(local_view_synaptic_weights_.size()))
+    if((lv_cell_count_+1) > static_cast<int>(local_view_synaptic_weights_.size()))
     {
         int old_size = local_view_synaptic_weights_.size();
-        local_view_synaptic_weights_.resize(max_view_template_id_+1);//!< cria novas posições na matriz de conexões
+        local_view_synaptic_weights_.resize(lv_cell_count_+1);//!< cria novas posições na matriz de conexões
         //! aloca os novos vetores criados
         for(std::vector<cv::Mat_<double> >::iterator it = local_view_synaptic_weights_.begin() + old_size;
             it < local_view_synaptic_weights_.end();it++)
@@ -271,10 +263,7 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
         }
     }
 
-    std::cout << "max_view_template_id_ = " << max_view_template_id_ << "weight size = " << local_view_synaptic_weights_.size() << std::endl;
-
     update();
-
 
 }
 
@@ -482,7 +471,7 @@ void PlaceCellNetwork::externalInput()
     {
         for(int lvc=0;lvc<lv_cells_active_.size();lvc++)
         {
-            local_view_age = max_view_template_id_ - lv_cells_active_[lvc].id_;
+            local_view_age = lv_cell_count_ - lv_cells_active_[lvc].id_;
 
             if(local_view_age >= parameters_.min_input_age_){
                 //! apply external inputs
@@ -495,7 +484,7 @@ void PlaceCellNetwork::externalInput()
     else if (parameters_.local_view_activation_ == "single")
     {
 
-        local_view_age = max_view_template_id_ - most_active_lv_cell_;
+        local_view_age = lv_cell_count_ - most_active_lv_cell_;
 
         if(local_view_age >= parameters_.min_input_age_){
             //! apply external inputs
