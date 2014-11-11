@@ -20,7 +20,7 @@ namespace dolphin_slam
 *   \brief Constructor
 *
 */
-PlaceCellNetwork::PlaceCellNetwork()
+PlaceCellNetwork::PlaceCellNetwork(): tf_listener_(tf_buffer_)
 {
     lv_cell_count_ = 0;
     most_active_lv_cell_ = -1;
@@ -32,8 +32,6 @@ PlaceCellNetwork::PlaceCellNetwork()
     createROSPublishers();
 
     createROSSubscribers();
-
-    createROSServices();
 
     createNeurons();
     createExcitatoryWeights();
@@ -81,14 +79,6 @@ void PlaceCellNetwork::createROSPublishers()
 
 }
 
-void PlaceCellNetwork::createROSServices()
-{
-    robot_state_pc_service = node_handle_.serviceClient<dolphin_slam::RobotPose>("robot_state_pc",true);
-    robot_state_em_service = node_handle_.serviceClient<dolphin_slam::RobotPose>("robot_state_em",true);
-
-    robot_state_pc_service.waitForExistence();
-    robot_state_em_service.waitForExistence();
-}
 
 /*!
  * \brief Function to alocate a matrix of neurons
@@ -233,13 +223,8 @@ void PlaceCellNetwork::createROSTimers()
 void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &message)
 {
 
-    lv_cells_active_.resize(message->cell_id_.size());
-    for(int i=0;i< lv_cells_active_.size(); i++)
-    {
-        lv_cells_active_[i].id_ = message->cell_id_[i];
-        lv_cells_active_[i].rate_ = message->cell_rate_[i];
-        lv_cells_active_[i].active_ = true;
-    }
+    image_seq_ = message->image_seq_;
+    image_stamp_ = message->image_stamp_;
 
     experience_event_ = (most_active_lv_cell_ != message->most_active_cell_);
 
@@ -267,38 +252,10 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
 
 }
 
-void PlaceCellNetwork::callRobotStateServices()
-{
-    if(!robot_state_pc_service.call(robot_pose_pc_))
-    {
-        ROS_WARN_STREAM_NAMED("pc","Nao recebeu resposta do servico robot_pose_pc");
-
-        //! se nao houver reposta, cria conexao, e espera que ela exista
-        robot_state_pc_service = node_handle_.serviceClient<dolphin_slam::RobotPose>("robot_state_pc",true);
-        robot_state_pc_service.waitForExistence();
-        robot_state_pc_service.call(robot_pose_pc_);
-    }
-
-    if(experience_event_)
-    {
-        if(!robot_state_em_service.call(robot_pose_em_))
-        {
-            ROS_WARN_STREAM_NAMED("pc","Nao recebeu resposta do servico robot_pose_em");
-
-            //! se nao houver reposta, cria conexao, e espera que ela exista
-            robot_state_em_service = node_handle_.serviceClient<dolphin_slam::RobotPose>("robot_state_em",true);
-            robot_state_em_service.waitForExistence();
-            robot_state_em_service.call(robot_pose_em_);
-        }
-    }
-}
 
 void PlaceCellNetwork::update()
 {
     time_monitor_.start();
-
-    //! chama os serviços de dead reckoning do robô
-    callRobotStateServices();
 
     //! excita a rede com uma função de ativação do tipo chapéu mexicano
     excite();
@@ -724,12 +681,10 @@ void PlaceCellNetwork::integrateZ(double  delta)
 void PlaceCellNetwork::pathIntegration()
 {
 
-    float delta_x,delta_y,delta_z;
+    double delta_x,delta_y,delta_z;
 
-    //! adquire a distancia percorrida em x,y,z e yaw
-    delta_x = robot_pose_pc_.response.traveled_distance_.x;
-    delta_y = robot_pose_pc_.response.traveled_distance_.y;
-    delta_z = robot_pose_pc_.response.traveled_distance_.z;
+    //! Get traveled distance from tf
+    getTraveledDistance(delta_x,delta_y,delta_z);
 
     ROS_DEBUG_STREAM("Path Integration: [" << std::setw(6) << delta_x << ", " << std::setw(6) << delta_y << ", "
                      << std::setw(6) << delta_z << " ]" );
@@ -737,6 +692,20 @@ void PlaceCellNetwork::pathIntegration()
     integrateX(delta_x);
     integrateY(delta_y);
     integrateZ(delta_z);
+
+}
+
+//! Get traveled distance from tf
+bool PlaceCellNetwork::getTraveledDistance(double &delta_x,double &delta_y,double &delta_z)
+{
+    geometry_msgs::TransformStamped transform;
+    //! TODO Implement tf here
+
+    transform = tf_buffer_.lookupTransform("world","dead_reckoning",image_stamp_);
+
+    delta_x = transform.transform.translation.x - last_pose_.transform.translation.x;
+    delta_y = transform.transform.translation.y - last_pose_.transform.translation.y;
+    delta_z = transform.transform.translation.z - last_pose_.transform.translation.z;
 
 }
 

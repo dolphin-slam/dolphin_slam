@@ -16,6 +16,9 @@
 #include <dolphin_slam/RobotPose.h>
 #include <dolphin_slam/ExecutionTime.h>
 
+
+#include <geometry_msgs/TransformStamped.h>
+
 #include <local_view_module.h>
 
 // OpenCV
@@ -145,11 +148,13 @@ private:
 
     ros::Timer timer_;
 
-    ros::ServiceClient robot_state_pc_service;
-    ros::ServiceClient robot_state_em_service;
 
-    dolphin_slam::RobotPose robot_pose_pc_;
-    dolphin_slam::RobotPose robot_pose_em_;
+    //! Transformation Frames Library
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
+
+    //! path integration variables
+    geometry_msgs::TransformStamped last_pose_;
 
     TimeMonitor time_monitor_;
 
