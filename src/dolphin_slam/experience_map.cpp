@@ -8,7 +8,7 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-ExperienceMap::ExperienceMap()
+ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_)
 {
     max_id_experience_ = 0;
     number_of_recognized_experiences_ = 0;
@@ -30,6 +30,15 @@ ExperienceMap::ExperienceMap()
 
     filename = "experience_map_info_" + boost::lexical_cast<std::string>(test_number_) + ".txt";
     experience_map_file_.open(filename.c_str());
+}
+
+ExperienceMap::~ExperienceMap()
+{
+    experience_map_error_file_.close();
+    dead_reckoning_error_file_.close();
+
+    experience_map_file_.close();
+
 }
 
 void ExperienceMap::loadParameters()
@@ -56,175 +65,121 @@ void ExperienceMap::createROSPublishers()
     error_publisher_ = node_handle_.advertise<dolphin_slam::Error>("error",1,false);
 }
 
-void ExperienceMap::createFirstExperience(const ExperienceEventConstPtr &event)
+
+void ExperienceMap::getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp)
 {
-    Experience * experience_ptr;
+    geometry_msgs::TransformStamped transform;
 
-    //! adiciona a nova experiencia
-    current_experience_descriptor_ = boost::add_vertex(map_);
-    experience_ptr = &map_[current_experience_descriptor_];
+    transform = tf_buffer_.lookupTransform("world","dolphin_slam/gt_pose",stamp);
 
-    //! Atribui id, posição e ground truth
-    experience_ptr->id_ = 0;
-    experience_ptr->position_ = cv::Point3f(0.0,0.0,0.0);
-    experience_ptr->ground_truth_= cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
-
-    //! Atribui o indice ativo da rede neural
-    std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
-
-    experience_ptr->lv_cell_id_ = event->most_active_lv_cell_id_;
-    experience_ptr->rate_total_ = experience_ptr->rate_lv_ = experience_ptr->rate_pc_ = 1.0;
-
-
-    number_of_created_experiences_ = 1;
+    tf2::convert(transform.transform,gt_pose);
 }
 
-void ExperienceMap::createFirstDeadReckoning(const ExperienceEventConstPtr &event)
+void ExperienceMap::getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp)
 {
-    Experience * dead_reckoning_ptr;
+    geometry_msgs::TransformStamped transform;
 
-    //! adiciona a nova experiencia
-    current_dead_reckoning_descriptor_ = boost::add_vertex(dead_reckoning_map_);
-    dead_reckoning_ptr = &dead_reckoning_map_[current_dead_reckoning_descriptor_];
+    transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr_pose",stamp);
 
-    //! Atribui posição e ground truth
-    dead_reckoning_ptr->position_ = cv::Point3f(0.0,0.0,0.0);
-    dead_reckoning_ptr->ground_truth_= cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
+    tf2::convert(transform.transform,dr_pose);
 }
 
-void ExperienceMap::createDeadReckoning(const ExperienceEventConstPtr &event)
-{
-    ExperienceDescriptor new_dead_reckoning_descriptor;
-    Experience * dead_reckoning_ptr;
-    LinkDescriptor link_descriptor;
-    Link * link_ptr;
-    cv::Point3f traveled_distance;
-
-    //! adiciona a nova experiencia
-    new_dead_reckoning_descriptor = boost::add_vertex(dead_reckoning_map_);
-    dead_reckoning_ptr = &dead_reckoning_map_[new_dead_reckoning_descriptor];
-
-    //! Atribui posição e ground truth
-    traveled_distance = cv::Point3f(event->traveled_distance_.x,event->traveled_distance_.y,event->traveled_distance_.z);
-    dead_reckoning_ptr->position_ = dead_reckoning_map_[current_dead_reckoning_descriptor_].position_ + traveled_distance;
-    dead_reckoning_ptr->ground_truth_ = cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
-
-    //! Cria um link entre a experiência atual e a nova experiência
-    link_descriptor = boost::add_edge(current_dead_reckoning_descriptor_,new_dead_reckoning_descriptor,dead_reckoning_map_).first;
-    link_ptr = &dead_reckoning_map_[link_descriptor];
-    link_ptr->delta_position_ = traveled_distance;
-
-    //! Atualiza a experiência atual
-    current_dead_reckoning_descriptor_ = new_dead_reckoning_descriptor;
-}
-
-
-ExperienceMap::~ExperienceMap()
-{
-    experience_map_error_file_.close();
-    dead_reckoning_error_file_.close();
-
-    experience_map_file_.close();
-
-}
-
-
-
-
-void ExperienceMap::createNewExperience(const ExperienceEventConstPtr &event)
+void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
 {
     ExperienceDescriptor new_experience_descriptor;
-    Experience * experience_ptr;
-    LinkDescriptor link_descriptor;
-    Link * link_ptr;
-    cv::Point3f traveled_distance;
+    Experience * new_experience;
+    Experience * current_experience;
+    LinkDescriptor new_link_descriptor;
+    Link * new_link;
+    tf2::Transform transform;
 
-    //! adiciona a nova experiencia
+    //! add a new experience
     new_experience_descriptor = boost::add_vertex(map_);
-    experience_ptr = &map_[new_experience_descriptor];
+    new_experience = &map_[new_experience_descriptor];
 
-    //! Atribui id, posição e ground truth
-    experience_ptr->id_ = boost::num_vertices(map_) - 1;
+    //! set experience id
+    new_experience->id_ = number_of_created_experiences_;
 
-    traveled_distance = cv::Point3f(event->traveled_distance_.x,event->traveled_distance_.y,event->traveled_distance_.z);
-    experience_ptr->position_ = map_[current_experience_descriptor_].position_ + traveled_distance;
-    experience_ptr->ground_truth_ = cv::Point3f(event->ground_truth_.x,event->ground_truth_.y,event->ground_truth_.z);
+    //! copy active pc_index
+    std::copy(event->pc_index_.begin(),event->pc_index_.end(),new_experience->pc_index_);
 
-    //! Atribui o indice ativo da rede neural
-    std::copy(event->pc_index_.begin(),event->pc_index_.end(),experience_ptr->pc_index_);
+    //! set local view cell id
+    new_experience->lv_cell_id_ = event->lv_cells_.most_active_cell_;
 
-    experience_ptr->lv_cell_id_ = event->most_active_lv_cell_id_;
+    //! set experience activation rate
+    new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
-    experience_ptr->rate_total_ = experience_ptr->rate_lv_ = experience_ptr->rate_pc_ = 1.0;
+    //! set ground truth
+    getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);
+
+    //! set dead reckoning
+    getDeadReckoning(new_experience->dr_pose_,event->lv_cells_.image_stamp_);
 
 
+    if(number_of_created_experiences_ == 0)
+    {
+        //! set first pose at the same place as the ground truth
+        new_experience->pose_ = new_experience->gt_pose_;
+    }
+    else
+    {
+        //! get a pointer to current experience
+        current_experience = &map_[current_experience_descriptor_];
+
+        //! Compute traveled distance since last experience
+        transform = new_experience->dr_pose_*current_experience->dr_pose_.inverse();
+
+        //! compute new pose based on traveled distance and last pose
+        new_experience->pose_ = transform*current_experience->pose_;
+
+        //! add a link between last and new experiences
+        new_link_descriptor = boost::add_edge(current_experience_descriptor_,new_experience_descriptor,map_).first;
+        new_link = &map_[new_link_descriptor];
+
+        //! set link transform
+        new_link->transform_ = transform;
+    }
+
+    //! increase experience counter
     number_of_created_experiences_++;
 
-    //! Cria um link entre a experiência atual e a nova experiência
-    link_descriptor = boost::add_edge(current_experience_descriptor_,new_experience_descriptor,map_).first;
-    link_ptr = &map_[link_descriptor];
-    link_ptr->delta_position_ = traveled_distance;
-
-    //! Atualiza a experiência atual
+    //! update current experience descriptor
     current_experience_descriptor_ = new_experience_descriptor;
+
+
 }
 
-//! linka a experiência similar
-void ExperienceMap::linkSimilarExperience(const ExperienceEventConstPtr &event,ExperienceDescriptor &similar_experience)
+//! compute matches between new experience(current_experience_descriptor) and all other experiences
+void ExperienceMap::computeMatches()
 {
+    std::vector<ExperienceDescriptor> matches;
     LinkDescriptor link_descriptor;
     Link * link_ptr;
-    cv::Point3f traveled_distance;
+    double similarity;
+    tf2::Transform transform;
 
-    //! \todo Analisar a adaptação da atividade neuronal
-
-
-    //! Cria um link entre a experiência atual e a nova experiência
-    link_descriptor = boost::add_edge(current_experience_descriptor_,similar_experience,map_).first;
-    link_ptr = &map_[link_descriptor];
-    traveled_distance = cv::Point3f(event->traveled_distance_.x,event->traveled_distance_.y,event->traveled_distance_.z);
-    link_ptr->delta_position_ = traveled_distance;
-
-    //! \todo Analizar a existência de falsas correspondencias, isto é, erro no fechamento de loop, comparando o ground truth das duas experiências
-
-    //! Atualiza a experiência atual
-    current_experience_descriptor_ = similar_experience;
-
-
-}
-
-
-bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, ExperienceDescriptor &similar_experience)
-{
-    float greatest_activity = 0;
-    bool match_found = false;
-
-
-    //std::cout << "nexp = " << boost::num_vertices(map_) << " experience_rate";
-    //! iterar por todas as experiências em busca de um match
-    foreach (ExperienceDescriptor exp, boost::vertices(map_)) {
-        map_[exp].computeActivity(event);
-
-        if(map_[exp].rate_total_ > parameters_.match_threshold_)
+    BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
+        if(exp != current_experience_descriptor_)
         {
-            std::cout << "exp id = " << map_[exp].id_ << std::endl;
-            match_found = true;
-            if(map_[exp].rate_total_ > greatest_activity)
+            similarity = map_[exp].computeSimilarity(map_[current_experience_descriptor_]);
+            if(similarity != parameters_.match_threshold_)
             {
-                greatest_activity = map_[exp].rate_total_;
-                similar_experience = exp;
+                matches.push_back(exp);
             }
         }
-
-    }
-    //std::cout << std::endl;
-
-    if(match_found)
-    {
-        std::cout << "Experience match found" << std::endl;
     }
 
-    return match_found;
+    //! create links between current experience and similar ones
+    BOOST_FOREACH(ExperienceDescriptor exp, matches) {
+        //! \todo
+        //! compute transform between images
+
+        //! create links between experiences
+        link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
+        link_ptr = &map_[link_descriptor];
+
+        link_ptr->transform_ = transform;
+    }
 }
 
 
@@ -234,37 +189,11 @@ bool ExperienceMap::lookForMatches(const ExperienceEventConstPtr &event, Experie
  */
 void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event)
 {
-    ExperienceDescriptor similar_experience;
-
     time_monitor_.start();
 
-    //! \todo Copiar toda a atividade da pose cell e as local view ativas, para fins de comparação
+    createExperience(event);
 
-    if(number_of_created_experiences_ == 0)
-    {
-        createFirstExperience(event);
-        createFirstDeadReckoning(event);
-    }
-    else
-    {
-        if(lookForMatches(event,similar_experience))
-        {
-            number_of_recognized_experiences_++;
-            ROS_DEBUG_STREAM_NAMED("em","Encontrou experiencia similar: ID atual = " << map_[current_experience_descriptor_].id_ <<
-                                   "ID match = " << map_[similar_experience].id_);
-            std::cout << "Match: " << map_[current_experience_descriptor_].id_ <<
-                                   " -> " << map_[similar_experience].id_ << std::endl;
-            linkSimilarExperience(event,similar_experience);
-        }
-        else
-        {
-            number_of_created_experiences_++;
-            createNewExperience(event);
-            ROS_DEBUG_STREAM_NAMED("em","New experience ID = " << map_[current_experience_descriptor_].id_ );
-        }
-    }
-
-    createDeadReckoning(event);
+    computeMatches();
 
     //iterateMap();
 
@@ -308,74 +237,23 @@ void ExperienceMap::publishExecutionTime()
 
 void ExperienceMap::calculeDeadReckoningError()
 {
-    float x_err=0, y_err=0, z_err=0,error=0;
-    foreach (ExperienceDescriptor e, boost::vertices(dead_reckoning_map_)) {
-        x_err +=  pow(dead_reckoning_map_[e].ground_truth_.x - dead_reckoning_map_[e].position_.x,2);
-        y_err +=  pow(dead_reckoning_map_[e].ground_truth_.y - dead_reckoning_map_[e].position_.y,2);
-        z_err +=  pow(dead_reckoning_map_[e].ground_truth_.z - dead_reckoning_map_[e].position_.z,2);
-    }
-
-    x_err /= boost::num_vertices(dead_reckoning_map_);
-    y_err /= boost::num_vertices(dead_reckoning_map_);
-    z_err /= boost::num_vertices(dead_reckoning_map_);
-
-    foreach (ExperienceDescriptor e, boost::vertices(dead_reckoning_map_)) {
-        error +=  pow(dead_reckoning_map_[e].ground_truth_.x - dead_reckoning_map_[e].position_.x,2) +
-                pow(dead_reckoning_map_[e].ground_truth_.y - dead_reckoning_map_[e].position_.y,2) +
-                pow(dead_reckoning_map_[e].ground_truth_.z - dead_reckoning_map_[e].position_.z,2);
-    }
-
-    dead_reckoning_error_ = error/boost::num_vertices(dead_reckoning_map_);
-    dead_reckoning_independent_error_= cv::Point3f(x_err,y_err,z_err);
 
 }
 
 void ExperienceMap::calculeExperienceMapError()
 {
-    float x_err=0, y_err=0, z_err=0,error=0;
-    foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        x_err +=  pow(map_[e].ground_truth_.x - map_[e].position_.x,2);
-        y_err +=  pow(map_[e].ground_truth_.y - map_[e].position_.y,2);
-        z_err +=  pow(map_[e].ground_truth_.z - map_[e].position_.z,2);
-    }
-
-    x_err /= boost::num_vertices(map_);
-    y_err /= boost::num_vertices(map_);
-    z_err /= boost::num_vertices(map_);
-
-    foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        error +=  pow(map_[e].ground_truth_.x - map_[e].position_.x,2) +
-                pow(map_[e].ground_truth_.y - map_[e].position_.y,2) +
-                pow(map_[e].ground_truth_.z - map_[e].position_.z,2);
-    }
-
-    experience_map_error_ = error/boost::num_vertices(map_);
-    experience_map_independent_error_ = cv::Point3f(x_err,y_err,z_err);
 
 }
 
 void ExperienceMap::calculeLocalisationError()
 {
 
-    localisationErrorEM_  =  sqrt(pow(map_[current_experience_descriptor_].ground_truth_.x - map_[current_experience_descriptor_].position_.x,2) +
-                                  pow(map_[current_experience_descriptor_].ground_truth_.y - map_[current_experience_descriptor_].position_.y,2) +
-                                  pow(map_[current_experience_descriptor_].ground_truth_.z - map_[current_experience_descriptor_].position_.z,2));
-
-
-    localisationErrorDR_  =  sqrt(pow(dead_reckoning_map_[current_dead_reckoning_descriptor_].ground_truth_.x - dead_reckoning_map_[current_dead_reckoning_descriptor_].position_.x,2) +
-                                  pow(dead_reckoning_map_[current_dead_reckoning_descriptor_].ground_truth_.y - dead_reckoning_map_[current_dead_reckoning_descriptor_].position_.y,2) +
-                                  pow(dead_reckoning_map_[current_dead_reckoning_descriptor_].ground_truth_.z - dead_reckoning_map_[current_dead_reckoning_descriptor_].position_.z,2));
 
 }
 
 void ExperienceMap::storeMaps()
 {
     std::ofstream experience_map_file, dead_reckoning_map_file, experience_map_ground_truth_file, dead_reckoning_ground_truth_file;
-
-    ExperienceDescriptor exp1,exp2;
-
-    //! \todo Abrir e fechar os arquivos aqui
-    boost::graph_traits<Map>::edge_iterator ei, ei_end;
 
     std::string filename;
     filename = "experience_map"+boost::lexical_cast<std::string>(test_number_)+".txt";
@@ -390,58 +268,78 @@ void ExperienceMap::storeMaps()
     filename = "dead_reckoning_ground_truth"+boost::lexical_cast<std::string>(test_number_)+".txt";
     dead_reckoning_ground_truth_file.open(filename.c_str());
 
-    bool first = true;
-    for (boost::tie(ei, ei_end) = boost::edges(map_); ei != ei_end; ++ei)
-    {
-        if(first)
-        {
-            first = false;
-            exp1 = boost::source(*ei, map_);
-            experience_map_file << map_[exp1].position_.x << " " << map_[exp1].position_.y << " " << map_[exp1].position_.z << std::endl;
-            experience_map_ground_truth_file << map_[exp1].ground_truth_.x << " " << map_[exp1].ground_truth_.y << " " << map_[exp1].ground_truth_.z << std::endl;
-        }
-
-        exp2 = boost::target(*ei, map_);
-        experience_map_file << map_[exp2].position_.x << " " << map_[exp2].position_.y << " " << map_[exp2].position_.z << std::endl;
-        experience_map_ground_truth_file << map_[exp2].ground_truth_.x << " " << map_[exp2].ground_truth_.y << " " << map_[exp2].ground_truth_.z << std::endl;
-
-    }
-
-
-    first = true;
-    for (boost::tie(ei, ei_end) = boost::edges(dead_reckoning_map_); ei != ei_end; ++ei)
-    {
-        if(first)
-        {
-            first = false;
-            exp1 = boost::source(*ei, dead_reckoning_map_);
-            dead_reckoning_map_file << dead_reckoning_map_[exp1].position_.x << " " << dead_reckoning_map_[exp1].position_.y << " " << dead_reckoning_map_[exp1].position_.z << std::endl;
-            dead_reckoning_ground_truth_file << dead_reckoning_map_[exp1].ground_truth_.x << " " << dead_reckoning_map_[exp1].ground_truth_.y << " " << dead_reckoning_map_[exp1].ground_truth_.z << std::endl;
-        }
-
-        exp2 = boost::target(*ei, dead_reckoning_map_);
-        dead_reckoning_map_file << dead_reckoning_map_[exp2].position_.x << " " << dead_reckoning_map_[exp2].position_.y << " " << dead_reckoning_map_[exp2].position_.z << std::endl;
-        dead_reckoning_ground_truth_file << dead_reckoning_map_[exp2].ground_truth_.x << " " << dead_reckoning_map_[exp2].ground_truth_.y << " " << dead_reckoning_map_[exp2].ground_truth_.z << std::endl;
-    }
+    //! \todo store maps here
 
     experience_map_file.close();
     dead_reckoning_map_file.close();
 
-
 }
 
 /*!
- * \brief Experience::createROSMessageMap
+ * \brief Publish dead reckoning
  */
-void ExperienceMap::createROSMessageGroundTruth(visualization_msgs::Marker & message)
+void ExperienceMap::publishExperienceMap()
 {
+    visualization_msgs::Marker message;
+
     //! completa o cabeçalho da mensagem
     message.header.stamp = ros::Time::now();
     message.header.frame_id = "world";
 
     //! configura o tipo e a ação tomada pela mensagem
     message.type = visualization_msgs::Marker::LINE_STRIP;
-    //    message.type = visualization_msgs::Marker::POINTS;
+    message.action = visualization_msgs::Marker::ADD;
+    message.ns = "experience_map";
+    message.id = 0;
+
+    //! configura a pose dos marcadores
+    message.pose.position.x = 0.0 ;
+    message.pose.position.y = 0.0;
+    message.pose.position.z = 0.0;
+
+    message.pose.orientation.x = 0.0;
+    message.pose.orientation.y = 0.0;
+    message.pose.orientation.z = 0.0;
+    message.pose.orientation.w = 1.0;
+
+    message.scale.x = 0.025;
+    message.scale.y = 0.025;
+    message.scale.z = 0.025;
+
+    //! configura a cor dos marcadores
+    message.color.r = 0.0;
+    message.color.g = 0.0;
+    message.color.b = 1.0;
+    message.color.a = 1.0;
+
+    //! configura os marcadores para serem permanentes
+    message.lifetime = ros::Duration(0.0);
+
+    message.points.resize(boost::num_vertices(map_));
+    int i = 0;
+    foreach (ExperienceDescriptor e, boost::vertices(map_)) {
+        tf2::convert(map_[e].pose_.getOrigin(),message.points[i]);
+        i++;
+    }
+
+    map_publisher_.publish(message);
+
+}
+
+
+/*!
+ * \brief Publish ground truth
+ */
+void ExperienceMap::publishGroundTruth()
+{
+    visualization_msgs::Marker message;
+
+    //! completa o cabeçalho da mensagem
+    message.header.stamp = ros::Time::now();
+    message.header.frame_id = "world";
+
+    //! configura o tipo e a ação tomada pela mensagem
+    message.type = visualization_msgs::Marker::LINE_STRIP;
     message.action = visualization_msgs::Marker::ADD;
     message.ns = "ground_truth";
     message.id = 0;
@@ -472,127 +370,29 @@ void ExperienceMap::createROSMessageGroundTruth(visualization_msgs::Marker & mes
     message.points.resize(boost::num_vertices(map_));
     int i = 0;
     foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        if ( ROTATE_MAPS){
-            message.points[i].x = map_[e].ground_truth_.x;
-            message.points[i].y = -map_[e].ground_truth_.y;
-            message.points[i].z = -map_[e].ground_truth_.z;
-        }else{
-            message.points[i].x = map_[e].ground_truth_.x;
-            message.points[i].y = map_[e].ground_truth_.y;
-            message.points[i].z = map_[e].ground_truth_.z;
-        }
+        tf2::convert(map_[e].gt_pose_.getOrigin(),message.points[i]);
         i++;
     }
 
-    //    graph_traits<Map>::edge_iterator ei, ei_end;
-    //    message.points.resize(2*num_edges(map));
-    //    int i=0;
-    //    for (tie(ei, ei_end) = edges(map); ei != ei_end; ++ei,i+=2){
-    //        Experience v1 = source(*ei, map);
-    //        Experience v2 = target(*ei, map);
-    //        tf::pointTFToMsg(map[v1].pose.getOrigin(),message.points[i]);
-    //        tf::pointTFToMsg(map[v2].pose.getOrigin(),message.points[i+1]);
-    //    }
-
-}
-
-void ExperienceMap::createROSMessageError(dolphin_slam::Error &message)
-{
-    message.header.stamp = ros::Time::now();
-    message.header.frame_id = "error";
-
-    message.experience_map_error = localisationErrorEM_;
-    message.dead_reckoning_error = localisationErrorDR_;
+    ground_truth_publisher_.publish(message);
 
 }
 
 /*!
- * \brief Experience::createROSMessageMap
+ * \brief Publish dead reckoning
  */
-void ExperienceMap::createROSMessageMap(visualization_msgs::Marker & message)
+void ExperienceMap::publishDeadReckoning()
 {
+    visualization_msgs::Marker message;
+
     //! completa o cabeçalho da mensagem
     message.header.stamp = ros::Time::now();
     message.header.frame_id = "world";
 
     //! configura o tipo e a ação tomada pela mensagem
     message.type = visualization_msgs::Marker::LINE_STRIP;
-    //    message.type = visualization_msgs::Marker::POINTS;
     message.action = visualization_msgs::Marker::ADD;
-    message.ns = "map";
-    message.id = 0;
-
-    //! configura a pose dos marcadores
-    message.pose.position.x = 0.0;
-    message.pose.position.y = 0.0;
-    message.pose.position.z = 0.0;
-
-    message.pose.orientation.x = 0.0;
-    message.pose.orientation.y = 0.0;
-    message.pose.orientation.z = 0.0;
-    message.pose.orientation.w = 1.0;
-
-    message.scale.x = 0.025;
-    message.scale.y = 0.025;
-    message.scale.z = 0.025;
-
-    //! configura a cor dos marcadores
-    message.color.r = 0.0;
-    message.color.g = 0.0;
-    message.color.b = 1.0;
-    message.color.a = 1.0;
-
-    //! configura os marcadores para serem permanentes
-    message.lifetime = ros::Duration(0.0);
-
-    message.points.resize(boost::num_vertices(map_));
-    int i = 0;
-    foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        if ( ROTATE_MAPS){
-            message.points[i].x = map_[e].position_.x;
-            message.points[i].y = -map_[e].position_.y;
-            message.points[i].z = -map_[e].position_.z;
-        }else{
-            message.points[i].x = map_[e].position_.x;
-            message.points[i].y = map_[e].position_.y;
-            message.points[i].z = map_[e].position_.z;
-        }
-
-        //OS_DEBUG_STREAM_NAMED("em","active neuroun = " << map_[e].active_neuron_[0] << " " <<map_[e].active_neuron_[1] << " " <<map_[e].active_neuron_[2] << " " <<map_[e].active_neuron_[3] );
-        i++;
-    }
-
-    //    graph_traits<Map>::edge_iterator ei, ei_end;
-    //    message.points.resize(2*num_edges(map));
-    //    int i=0;
-    //    for (tie(ei, ei_end) = edges(map); ei != ei_end; ++ei,i+=2){
-    //        Experience v1 = source(*ei, map);
-    //        Experience v2 = target(*ei, map);
-    //        tf::pointTFToMsg(map[v1].pose.getOrigin(),message.points[i]);
-    //        tf::pointTFToMsg(map[v2].pose.getOrigin(),message.points[i+1]);
-    //    }
-
-    transform_map_.transform.translation.x = message.points[i].x;
-    transform_map_.transform.translation.y = message.points[i].y;
-    transform_map_.transform.translation.z = message.points[i].z;
-
-}
-
-/*!
- * \brief Experience::createROSMessageMap
- */
-void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & message)
-{
-    std::cout << "AQUI" << std::endl;
-    //! completa o cabeçalho da mensagem
-    message.header.stamp = ros::Time::now();
-    message.header.frame_id = "world";
-
-    //! configura o tipo e a ação tomada pela mensagem
-    message.type = visualization_msgs::Marker::LINE_STRIP;
-    //message.type = visualization_msgs::Marker::POINTS;
-    message.action = visualization_msgs::Marker::ADD;
-    message.ns = "dead_reckoning_map";
+    message.ns = "dead_reckoning";
     message.id = 0;
 
     //! configura a pose dos marcadores
@@ -618,55 +418,43 @@ void ExperienceMap::createROSMessageDeadReckoning(visualization_msgs::Marker & m
     //! configura os marcadores para serem permanentes
     message.lifetime = ros::Duration(0.0);
 
-    message.points.resize(boost::num_vertices(dead_reckoning_map_));
+    message.points.resize(boost::num_vertices(map_));
     int i = 0;
-    foreach (ExperienceDescriptor e, boost::vertices(dead_reckoning_map_)) {
-        if ( ROTATE_MAPS){
-            message.points[i].x = dead_reckoning_map_[e].position_.x;
-            message.points[i].y = -dead_reckoning_map_[e].position_.y;
-            message.points[i].z = -dead_reckoning_map_[e].position_.z;
-        }else{
-            message.points[i].x = dead_reckoning_map_[e].position_.x;
-            message.points[i].y = dead_reckoning_map_[e].position_.y;
-            message.points[i].z = dead_reckoning_map_[e].position_.z;
-        }
+    foreach (ExperienceDescriptor e, boost::vertices(map_)) {
+        tf2::convert(map_[e].dr_pose_.getOrigin(),message.points[i]);
         i++;
     }
 
-    transform_dead_.transform.translation.x = message.points[i].x;
-    transform_dead_.transform.translation.y = message.points[i].y;
-    transform_dead_.transform.translation.z = message.points[i].z;
-
-    //    graph_traits<Map>::edge_iterator ei, ei_end;
-    //    message.points.resize(2*num_edges(map));
-    //    int i=0;
-    //    for (tie(ei, ei_end) = edges(map); ei != ei_end; ++ei,i+=2){
-    //        Experience v1 = source(*ei, map);
-    //        Experience v2 = target(*ei, map);
-    //        tf::pointTFToMsg(map[v1].pose.getOrigin(),message.points[i]);
-    //        tf::pointTFToMsg(map[v2].pose.getOrigin(),message.points[i+1]);
-    //    }
+    dead_reckoning_publisher_.publish(message);
 
 }
 
-/*!
- * \brief Function to publish map
- */
-void ExperienceMap::publishExperienceMap()
+
+
+void ExperienceMap::createROSMessageError(dolphin_slam::Error &message)
 {
-    visualization_msgs::Marker message;
-    createROSMessageMap(message);
+    message.header.stamp = ros::Time::now();
+    message.header.frame_id = "error";
 
-    map_publisher_.publish(message);
+    message.experience_map_error = localisationErrorEM_;
+    message.dead_reckoning_error = localisationErrorDR_;
 
-    publishTfExperienceMap();
 }
 
 /*!
  * \brief Function to publish Tf experience map
  */
-void ExperienceMap::publishTfExperienceMap()
+void ExperienceMap::publishTFPoses()
 {
+    tf2::Stamped<tf2::Transform> stamped_transform;
+    geometry_msgs::TransformStamped_ msg;
+
+    stamped_transform = tf2::Stamped<tf2::Transform>(map_[current_experience_descriptor_].pose_,ros::Time::now(),"experience_map");
+    tf2::convert(stamped_transform,msg);
+
+    tf_broadcaster_.sendTransform(msg);
+
+
     //! Transform the message to fit the Tf
     transform_map_.header.frame_id = "world";
     transform_map_.child_frame_id = "experience_map";

@@ -55,12 +55,13 @@ public:
 private:
     void calculeLocalisationError();
 
-    void createFirstExperience(const ExperienceEventConstPtr &event);
-    void createNewExperience(const ExperienceEventConstPtr &event);
-    void linkSimilarExperience(const ExperienceEventConstPtr &event, ExperienceDescriptor &similar_experience);
+    void createExperience(const ExperienceEventConstPtr &event);
 
-    void createFirstDeadReckoning(const ExperienceEventConstPtr &event);
-    void createDeadReckoning(const ExperienceEventConstPtr &event);
+    void computeMatches();
+
+    void getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp);
+
+    void getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp);
 
     void iterateMap();
 
@@ -84,7 +85,7 @@ private:
     void publishExecutionTime();
 
     void publishTfDeadReckoning();
-    void publishTfExperienceMap();
+    void publishTFPoses();
 
     ExperienceMapParameters parameters_;
 
@@ -119,8 +120,11 @@ private:
     ros::Publisher execution_time_publisher_;
     ros::Subscriber experience_event_subscriber_;
 
-    //! Tf2 Broadcaster
-    tf2_ros::TransformBroadcaster experience_map_tf_broadcaster_;
+
+    //! Transformation Frames Library
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
+    tf2_ros::TransformBroadcaster tf_broadcaster_;
 
     //! Geometry Messages for broadcasting
     geometry_msgs::TransformStamped transform_dead_;

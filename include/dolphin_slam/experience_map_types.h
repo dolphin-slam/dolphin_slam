@@ -8,6 +8,9 @@
 #include <local_view_module.h>
 #include <dolphin_slam/ExperienceEvent.h>
 
+#include <tf2/LinearMath/Transform.h>
+
+
 namespace dolphin_slam
 {
 
@@ -25,39 +28,38 @@ struct Experience
 
     int lv_cell_id_;
 
-    cv::Point3f position_;          //!< Estimated Pose of experience
-    cv::Point3f ground_truth_;      //!< Real robot Pose on experience position
+    tf2::Transform pose_;
+    tf2::Transform gt_pose_;
+    tf2::Transform dr_pose_;
 
     double rate_lv_;
     double rate_pc_;
     double rate_total_;
 
-    void computeActivity(const ExperienceEventConstPtr &event)
-    {
+    double computeSimilarity(Experience &other){
 
-        //! pega o indice da place cell pertencente a experiência
-        int pc_index = pc_index_[0]*event->pc_activity_.number_of_neurons_[1]*event->pc_activity_.number_of_neurons_[2]+
-                pc_index_[1]*event->pc_activity_.number_of_neurons_[2]+
-                pc_index_[2];
-
-        //! seta a taxa de ativação atual do neurônio
-        rate_pc_ = event->pc_activity_.activity_[pc_index];
-
+        rate_pc_ = 1;
+        for(int i;i<3;i++)
+        {
+            if(pc_index_ != other.pc_index_)
+            {
+                rate_pc_ = 0;
+            }
+        }
 
         //! procura pelo id da local view na mensagem recebida. se encontrar, teremos a taxa de ativação.
-        rate_lv_ = 0;
-        for(int i=0;i<event->lv_cell_id_.size();i++)
+        if(lv_cell_id_ == other.lv_cell_id_)
         {
-            if(event->lv_cell_id_[i] == lv_cell_id_)
-            {
-                rate_lv_= event->lv_cell_rate_[i];
-                std::cout << "exp_id = " << id_ << "rates = " << rate_lv_ << " " << rate_pc_ << " " << rate_total_ << std::endl;
-            }
+            rate_lv_ = 1;
+        }
+        else
+        {
+            rate_lv_ = 0;
         }
 
         rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
 
-        //std::cout << "exp_id = " << id_ << "rates = " << rate_lv_ << " " << rate_pc_ << " " << rate_total_ << std::endl;
+        return rate_total_;
     }
 
 };
@@ -68,7 +70,7 @@ struct Experience
 */
 struct Link
 {
-    cv::Point3f delta_position_;
+    tf2::Transform transform_;
 };
 
 
