@@ -68,20 +68,20 @@ void ExperienceMap::createROSPublishers()
 
 void ExperienceMap::getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp)
 {
-    geometry_msgs::TransformStamped transform;
+    geometry_msgs::TransformStamped msg;
 
-    transform = tf_buffer_.lookupTransform("world","dolphin_slam/gt_pose",stamp);
+    msg = tf_buffer_.lookupTransform("world","dolphin_slam/gt_pose",stamp);
 
-    tf2::convert(transform.transform,gt_pose);
+    gt_pose = getTransform(msg);
 }
 
 void ExperienceMap::getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp)
 {
-    geometry_msgs::TransformStamped transform;
+    geometry_msgs::TransformStamped msg;
 
-    transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr_pose",stamp);
+    msg = tf_buffer_.lookupTransform("world","dolphin_slam/dr_pose",stamp);
 
-    tf2::convert(transform.transform,dr_pose);
+    dr_pose = getTransform(msg);
 }
 
 void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
@@ -101,7 +101,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     new_experience->id_ = number_of_created_experiences_;
 
     //! copy active pc_index
-    std::copy(event->pc_index_.begin(),event->pc_index_.end(),new_experience->pc_index_);
+    std::copy(event->pc_activity_.active_index_.begin(),event->pc_activity_.active_index_.end(),new_experience->pc_index_);
 
     //! set local view cell id
     new_experience->lv_cell_id_ = event->lv_cells_.most_active_cell_;
@@ -318,7 +318,10 @@ void ExperienceMap::publishExperienceMap()
     message.points.resize(boost::num_vertices(map_));
     int i = 0;
     foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        tf2::convert(map_[e].pose_.getOrigin(),message.points[i]);
+        tf2::Vector3 point = map_[e].pose_.getOrigin();
+        message.points[i].x = point.x();
+        message.points[i].y = point.y();
+        message.points[i].z = point.z();
         i++;
     }
 
@@ -370,7 +373,10 @@ void ExperienceMap::publishGroundTruth()
     message.points.resize(boost::num_vertices(map_));
     int i = 0;
     foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        tf2::convert(map_[e].gt_pose_.getOrigin(),message.points[i]);
+        tf2::Vector3 point = map_[e].gt_pose_.getOrigin();
+        message.points[i].x = point.x();
+        message.points[i].y = point.y();
+        message.points[i].z = point.z();
         i++;
     }
 
@@ -421,7 +427,10 @@ void ExperienceMap::publishDeadReckoning()
     message.points.resize(boost::num_vertices(map_));
     int i = 0;
     foreach (ExperienceDescriptor e, boost::vertices(map_)) {
-        tf2::convert(map_[e].dr_pose_.getOrigin(),message.points[i]);
+        tf2::Vector3 point = map_[e].dr_pose_.getOrigin();
+        message.points[i].x = point.x();
+        message.points[i].y = point.y();
+        message.points[i].z = point.z();
         i++;
     }
 
@@ -446,33 +455,16 @@ void ExperienceMap::createROSMessageError(dolphin_slam::Error &message)
  */
 void ExperienceMap::publishTFPoses()
 {
-    tf2::Stamped<tf2::Transform> stamped_transform;
-    geometry_msgs::TransformStamped_ msg;
+    geometry_msgs::TransformStamped msg;
 
-    stamped_transform = tf2::Stamped<tf2::Transform>(map_[current_experience_descriptor_].pose_,ros::Time::now(),"experience_map");
-    tf2::convert(stamped_transform,msg);
-
+    msg = createTransformStamped(map_[current_experience_descriptor_].pose_,ros::Time::now(),"world","em_pose");
     tf_broadcaster_.sendTransform(msg);
 
+    msg = createTransformStamped(map_[current_experience_descriptor_].gt_pose_,ros::Time::now(),"world","em_gt_pose");
+    tf_broadcaster_.sendTransform(msg);
 
-    //! Transform the message to fit the Tf
-    transform_map_.header.frame_id = "world";
-    transform_map_.child_frame_id = "experience_map";
-
-    std::cout << "trying experience_map" << std::endl;
-    experience_map_tf_broadcaster_.sendTransform(transform_map_);
-
-}
-
-/*!
- * \brief Function to publish ground truth
- */
-void ExperienceMap::publishGroundTruth()
-{
-    visualization_msgs::Marker message;
-    createROSMessageGroundTruth(message);
-
-    ground_truth_publisher_.publish(message);
+    msg = createTransformStamped(map_[current_experience_descriptor_].dr_pose_,ros::Time::now(),"world","em_dr_pose");
+    tf_broadcaster_.sendTransform(msg);
 
 }
 
@@ -487,17 +479,6 @@ void ExperienceMap::publishError()
     error_publisher_.publish(message);
 }
 
-/*!
- * \brief Function to publish dead reckoning
- */
-void ExperienceMap::publishDeadReckoning()
-{
-    visualization_msgs::Marker message;
-    createROSMessageDeadReckoning(message);
-
-    dead_reckoning_publisher_.publish(message);
-
-}
 
 
 /*!
@@ -505,74 +486,71 @@ void ExperienceMap::publishDeadReckoning()
  */
 void ExperienceMap::iterateMap()
 {
+    //    cv::Point3f difference_i,difference_o;
+    //    int ni,no;
+    //    ExperienceDescriptor adjacent_experience;
+    //    cv::Point3f first_experience_position;
 
-    cv::Point3f difference_i,difference_o;
-    int ni,no;
-    ExperienceDescriptor adjacent_experience;
-    cv::Point3f first_experience_position;
+    //    for(int n=0;n<10;n++){
+    //        //! Para todos os vertices do mapa de experiencias
+    //        foreach(ExperienceDescriptor experience, boost::vertices(map_))
+    //        {
 
-    for(int n=0;n<10;n++){
-        //! Para todos os vertices do mapa de experiencias
-        foreach(ExperienceDescriptor experience, boost::vertices(map_))
-        {
+    //            //            if(index[experience] == 0){
+    //            //                continue;
+    //            //            }
 
-            //            if(index[experience] == 0){
-            //                continue;
-            //            }
+    //            ni = no = 0;
+    //            difference_i = cv::Point3f(0,0,0);
+    //            difference_o = cv::Point3f(0,0,0);
 
-            ni = no = 0;
-            difference_i = cv::Point3f(0,0,0);
-            difference_o = cv::Point3f(0,0,0);
-
-            //! Seleciona todas as arestas que chegam no vertice escolhido
-            foreach (LinkDescriptor link, boost::in_edges(experience,map_))
-            {
-                adjacent_experience = boost::source(link,map_);
-
-
-                //! Calcula o erro baseado nas experiencias que chegam ao vertice
-                difference_i += map_[adjacent_experience].position_ + map_[link].delta_position_ - map_[experience].position_;
-                ni ++;
-            }
-
-            if(ni)
-            {
-                difference_i *= (1.0/ni);
-            }
-
-            //! Seleciona todas as arestas que saem do vertice escolhido
-            foreach (LinkDescriptor link, boost::out_edges(experience,map_))
-            {
-                adjacent_experience = boost::target(link,map_);
-
-                //! Calcula o erro baseado nas experiencias que saem ao vertice
-                difference_o += map_[adjacent_experience].position_ - (map_[experience].position_ + map_[link].delta_position_ );
-                no ++;
-            }
-
-            if(no)
-            {
-                difference_o *= (1.0/no);
-            }
-
-            map_[experience].position_ += 0.5*(difference_i + difference_o);
-
-            if(map_[experience].id_ == 0)
-            {
-                first_experience_position = map_[experience].position_;
-            }
-        }
+    //            //! Seleciona todas as arestas que chegam no vertice escolhido
+    //            foreach (LinkDescriptor link, boost::in_edges(experience,map_))
+    //            {
+    //                adjacent_experience = boost::source(link,map_);
 
 
+    //                //! Calcula o erro baseado nas experiencias que chegam ao vertice
+    //                difference_i += map_[adjacent_experience].position_ + map_[link].delta_position_ - map_[experience].position_;
+    //                ni ++;
+    //            }
 
-    }
+    //            if(ni)
+    //            {
+    //                difference_i *= (1.0/ni);
+    //            }
 
-    ROS_DEBUG_STREAM_NAMED("em","First experience position = " << first_experience_position);
+    //            //! Seleciona todas as arestas que saem do vertice escolhido
+    //            foreach (LinkDescriptor link, boost::out_edges(experience,map_))
+    //            {
+    //                adjacent_experience = boost::target(link,map_);
 
-    foreach(ExperienceDescriptor experience, boost::vertices(map_))
-    {
-        map_[experience].position_ = map_[experience].position_ - first_experience_position;
-    }
+    //                //! Calcula o erro baseado nas experiencias que saem ao vertice
+    //                difference_o += map_[adjacent_experience].position_ - (map_[experience].position_ + map_[link].delta_position_ );
+    //                no ++;
+    //            }
+
+    //            if(no)
+    //            {
+    //                difference_o *= (1.0/no);
+    //            }
+
+    //            map_[experience].position_ += 0.5*(difference_i + difference_o);
+
+    //            if(map_[experience].id_ == 0)
+    //            {
+    //                first_experience_position = map_[experience].position_;
+    //            }
+    //        }
+
+    //    }
+
+    //    ROS_DEBUG_STREAM_NAMED("em","First experience position = " << first_experience_position);
+
+    //    foreach(ExperienceDescriptor experience, boost::vertices(map_))
+    //    {
+    //        map_[experience].position_ = map_[experience].position_ - first_experience_position;
+    //    }
 
 }
 

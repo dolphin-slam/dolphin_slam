@@ -88,6 +88,8 @@ private:
     void normalizeNetworkActivity();
     double getActiveNeuron(std::vector<int> &active_neuron);
 
+    bool getTraveledDistance(double &delta_x, double &delta_y, double &delta_z);
+
     void integrateX(double delta);
     void integrateY(double delta);
     void integrateZ(double delta);

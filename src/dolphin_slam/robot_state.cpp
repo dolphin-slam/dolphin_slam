@@ -5,19 +5,14 @@ const float DVL_ERROR = 0.1;
 namespace dolphin_slam
 {
 
-RobotState::RobotState(): normal_(0,DVL_ERROR), var_nor(rng_, normal_), ground_truth_tf2_listener_(buffer_)
+RobotState::RobotState(): tf_listener_(buffer_)
 {
+    has_gt_ = false;
 
-    has_ground_truth_ = has_dvl_ = has_imu_ = false;
-    robot_vel_ = cv::Point3f(0.0,0.0,0.0);
-    robot_yaw_ = 0;
-
-    delta_pc_ = delta_em_ = cv::Point3f(0.0,0.0,0.0);
+    dr_seq_ = 0;
 
     loadParameters();
     createROSSubscribers();
-    createTfTimers();
-    createROSServices();
 
 }
 
@@ -30,179 +25,94 @@ void RobotState::loadParameters()
     private_nh.param<std::string>("imu_topic", parameters_.imu_topic_, "/g500/imu");
     private_nh.param<std::string>("gt_topic", parameters_.gt_topic_, "/ground_truth");
 
-    has_ground_truth_ = false;
 
 }
 
 void RobotState::createROSSubscribers()
 {
-    DVL_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::DVLCallback,this);
-    IMU_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::IMUCallback,this);
-
-}
-
-void RobotState::createTfTimers()
-{
-    gt_listener_timer_ = node_handle_.createTimer(ros::Duration(0.1), &RobotState::tf2GroundTruthCallback, this);
-    dead_publisher_timer_ = node_handle_.createTimer(ros::Duration(0.1), &RobotState::tf2DeadReckoningPublish, this);
+    dvl_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::dvlCallback,this);
+    imu_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::imuCallback,this);
 }
 
 
-void RobotState::createROSServices()
+void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 {
-    pc_service_ = node_handle_.advertiseService("robot_state_pc", &RobotState::pcService,this);
-    em_service_= node_handle_.advertiseService("robot_state_em", &RobotState::emService,this);
-}
+    double elapsed_time;
+    geometry_msgs::TransformStamped msg;
 
-void RobotState::tf2GroundTruthCallback(const ros::TimerEvent& e)
-{
-    try
+    if(dr_seq_ = 0)
     {
-        gt_transform_ = buffer_.lookupTransform("world", "girona500", ros::Time(0));
-        if(!has_ground_truth_)
+        dr_pose_.setIdentity();
+    }
+    else
+    {
+        if(fabs(message->bi_error) < 1)
         {
-            first_ground_truth_.x = gt_transform_.transform.translation.x;
-            first_ground_truth_.y = gt_transform_.transform.translation.y;
-            first_ground_truth_.z = gt_transform_.transform.translation.z;
-
-            has_ground_truth_ = true;
-
-            ground_truth_.x = gt_transform_.transform.translation.x;
-            ground_truth_.y = gt_transform_.transform.translation.y;
-            ground_truth_.z = gt_transform_.transform.translation.z;
-
+            velocity_.setValue(message->bi_x_axis,message->bi_y_axis,message->bi_z_axis);
         }
         else
         {
-            ground_truth_.x = gt_transform_.transform.translation.x;
-            ground_truth_.y = gt_transform_.transform.translation.y;
-            ground_truth_.z = gt_transform_.transform.translation.z;
-
+            velocity_.setValue(0,0,0);
         }
 
+        elapsed_time = (message->header.stamp - dr_stamp_).toSec();
+
+            dr_pose_ = dr_pose_*(velocity_*elapsed_time);
+
     }
-    catch (tf2::TransformException ex )
-    {
-        ROS_ERROR("%s",ex.what());
-    }
+
+    dr_stamp_ = message->header.stamp;
+    dr_seq_++;
+
+    msg = createTransformStamped(dr_pose_,"world","dolphin_slam_dr");
+    msg.header.seq = dr_seq_;
+    tf_broadcaster_.sendTransform(msg);
+
 }
 
-void RobotState::tf2DeadReckoningPublish(const ros::TimerEvent &e)
+void RobotState::imuCallback(const sensor_msgs::ImuConstPtr &message)
 {
+    tf2::Quaternion orientation;
+
+    orientation.setValue(message->orientation.x,message->orientation.y,message->orientation.z,message->orientation.w);
+
+    dr_pose_.setRotation(orientation);
+}
+
+void RobotState::groundTruthCallback(const ros::TimerEvent &e)
+{
+    geometry_msgs::TransformStamped msg;
+
     try
     {
-        dead_transform_.transform.translation.x = delta_pc_.x;
-        dead_transform_.transform.translation.y = delta_pc_.y;
-        dead_transform_.transform.translation.z = delta_pc_.z;
-        dead_transform_.child_frame_id = "dead_reckoning";
-        dead_transform_.header.frame_id = "world";
-        dead_transform_.header.stamp = ros::Time::now();
-
-        dead_reckoning_tf2_broadcaster_.sendTransform(dead_transform_);
+        msg = buffer_.lookupTransform("world", "girona500", ros::Time(0));
 
     }
     catch (tf2::TransformException ex )
     {
         ROS_ERROR("%s",ex.what());
+        return;
     }
-}
 
-
-void RobotState::computeTraveledDistances(float elapsed_time)
-{
-    delta_pc_ += robot_vel_*elapsed_time;
-    delta_em_ += robot_vel_*elapsed_time;
-
-    //! Atualiza as novas velocidades e a nova orientação do robo
-    robot_vel_.x = vel_dvl_.x * cos(robot_yaw_) - vel_dvl_.y * sin(robot_yaw_);
-    robot_vel_.y = vel_dvl_.x * sin(robot_yaw_) + vel_dvl_.y * cos(robot_yaw_);
-    robot_vel_.z = vel_dvl_.z;
-
-    robot_yaw_ = yaw_imu_;
-}
-
-bool RobotState::pcService(RobotPose::Request &req, RobotPose::Response &res)
-{
-    res.traveled_distance_.x = delta_pc_.x;
-    res.traveled_distance_.y = delta_pc_.y;
-    res.traveled_distance_.z = delta_pc_.z;
-
-    res.ground_truth_.x = ground_truth_.x;
-    res.ground_truth_.y = ground_truth_.y;
-    res.ground_truth_.z = ground_truth_.z;
-
-    if(req.reset)
+    if(!has_gt_)
     {
-        delta_pc_ = cv::Point3f(0.0,0.0,0.0);
+        gt_pose_origin_ = getTransform(msg);
+
+        gt_pose_.setIdentity();
+
+        has_gt_ = true;
     }
-
-    return true;
-}
-
-bool RobotState::emService(RobotPose::Request &req, RobotPose::Response &res)
-{
-
-    res.traveled_distance_.x = delta_em_.x;
-    res.traveled_distance_.y = delta_em_.y;
-    res.traveled_distance_.z = delta_em_.z;
-
-    res.ground_truth_.x = ground_truth_.x;
-    res.ground_truth_.y = ground_truth_.y;
-    res.ground_truth_.z = ground_truth_.z;
-
-    if(req.reset)
+    else
     {
-        delta_em_ = cv::Point3f(0.0,0.0,0.0);
+        gt_pose_ = getTransform(msg);
+
+        gt_pose_ = gt_pose_origin_*gt_pose_;
     }
 
-    return true;
-}
+    createTransformStamped(gt_pose_,msg.header.stamp,"world","dolphin_slam_gt");
 
+    tf_broadcaster_.sendTransform(msg);
 
-void RobotState::DVLCallback(const underwater_sensor_msgs::DVLConstPtr &message)
-{
-    //cv::Point3f white_noise(var_nor(),var_nor(),var_nor());
-    float elapsed_time;
-
-    if(fabs(message->bi_error) < 1)
-    {
-        vel_dvl_.x = message->bi_x_axis;
-        vel_dvl_.y = message->bi_y_axis;
-        vel_dvl_.z = message->bi_z_axis;
-
-        //vel_dvl_ += white_noise;
-
-        //ROS_DEBUG_STREAM_NAMED("rs","DVL velocity =  " << vel_dvl_);
-
-
-        if(has_dvl_ && has_imu_)
-        {
-            elapsed_time = (message->header.stamp - timestamp_).toSec();
-
-            computeTraveledDistances(elapsed_time);
-        }
-
-        timestamp_ = message->header.stamp;
-        has_dvl_ = true;
-    }
- 
-    ROS_DEBUG_STREAM("DVL " <<
-                     "[ " << message->bi_x_axis <<
-                     " , " << message->bi_y_axis<<
-                     " , " << message->bi_z_axis<<
-                     " ] error = " << message->bi_error);
-    
-
-
-}
-
-void RobotState::IMUCallback(const sensor_msgs::ImuConstPtr &message)
-{
-    yaw_imu_ = tf::getYaw(message->orientation);
-
-    ROS_DEBUG_STREAM("Yaw " << yaw_imu_);
-
-    has_imu_ = true;
 }
 
 

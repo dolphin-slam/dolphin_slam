@@ -7,6 +7,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+#include <utils.h>
+
 
 
 #include <fstream>
@@ -125,10 +127,6 @@ private:
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
     tf2_ros::TransformBroadcaster tf_broadcaster_;
-
-    //! Geometry Messages for broadcasting
-    geometry_msgs::TransformStamped transform_dead_;
-    geometry_msgs::TransformStamped transform_map_;
 
     int max_id_experience_;
     int test_number_;

@@ -15,7 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   rosbag
   message_generation
-  tf
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -169,6 +171,7 @@ target_link_libraries(local_view_node
 add_executable(experience_map_node
     src/dolphin_slam/experience_map.cpp
     src/experience_map_node.cpp
+    src/dolphin_slam/utils.cpp
 )
 
 target_link_libraries(experience_map_node

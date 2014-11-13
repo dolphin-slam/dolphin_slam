@@ -24,8 +24,6 @@ PlaceCellNetwork::PlaceCellNetwork(): tf_listener_(tf_buffer_)
 {
     lv_cell_count_ = 0;
     most_active_lv_cell_ = -1;
-    robot_pose_pc_.request.reset = true;
-    robot_pose_em_.request.reset = true;
 
     loadParameters();
 
@@ -908,37 +906,35 @@ void PlaceCellNetwork::publishNetworkActivityMessage()
 
 void PlaceCellNetwork::publishExperienceMapEvent()
 {
-    dolphin_slam::ExperienceEvent message;
+    dolphin_slam::ExperienceEvent msg;
 
-    std::vector<int> active_index(DIMS);
+     std::vector<int> active_index(DIMS);
 
-    message.most_active_lv_cell_id_ = most_active_lv_cell_;
-    message.lv_cell_id_.resize(lv_cells_active_.size());
-    message.lv_cell_rate_.resize(lv_cells_active_.size());
-    for(int i=0;i<lv_cells_active_.size();i++)
-    {
-        message.lv_cell_id_[i] =lv_cells_active_[i].id_;
-        message.lv_cell_rate_[i] = lv_cells_active_[i].rate_;
-    }
+     msg.lv_cells_.image_seq_ = image_seq_;
+     msg.lv_cells_.image_stamp_ = image_stamp_;
+     msg.lv_cells_.most_active_cell_ = most_active_lv_cell_;
 
-    message.traveled_distance_ = robot_pose_em_.response.traveled_distance_;
+     msg.lv_cells_.cell_id_.resize(lv_cells_active_.size());
+     msg.lv_cells_.cell_rate_.resize(lv_cells_active_.size());
 
-    message.ground_truth_ = robot_pose_em_.response.ground_truth_;
+     for(int i=0;i<lv_cells_active_.size();i++)
+     {
+         msg.lv_cells_.cell_id_[i] =lv_cells_active_[i].id_;
+         msg.lv_cells_.cell_rate_[i] = lv_cells_active_[i].rate_;
+     }
 
-    //! set active index
+     //! set active index
+     msg.pc_activity_.active_rate_ = getActiveNeuron(active_index);
+     msg.pc_activity_.active_index_.resize(DIMS);
+     std::copy(active_index.begin(),active_index.end(),msg.pc_activity_.active_index_.begin());
 
+     msg.pc_activity_.number_of_neurons_.resize(DIMS);
+     std::copy(parameters_.number_of_neurons_.begin(),parameters_.number_of_neurons_.end(),msg.pc_activity_.number_of_neurons_.begin());
 
-    message.pc_rate_ = getActiveNeuron(active_index);
-    message.pc_index_.resize(DIMS);
-    std::copy(active_index.begin(),active_index.end(),message.pc_index_.begin());
+     msg.pc_activity_.activity_.resize(neurons_.total());
+     std::copy(neurons_.begin(),neurons_.end(),msg.pc_activity_.activity_.begin());
 
-    message.pc_activity_.number_of_neurons_.resize(DIMS);
-    std::copy(parameters_.number_of_neurons_.begin(),parameters_.number_of_neurons_.end(),message.pc_activity_.number_of_neurons_.begin());
-
-    message.pc_activity_.activity_.resize(neurons_.total());
-    std::copy(neurons_.begin(),neurons_.end(),message.pc_activity_.activity_.begin());
-
-    experience_event_publisher_.publish(message);
+     experience_event_publisher_.publish(msg);
 
 
 }
