@@ -3,7 +3,6 @@
 
 #include <ros/ros.h>
 
-#include <tf/tf.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -11,15 +10,9 @@
 #include <sensor_msgs/Imu.h>
 #include <underwater_sensor_msgs/DVL.h>
 
-#include <dolphin_slam/RobotPose.h>
-#include <nav_msgs/Odometry.h>
-
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/LinearMath/Quaternion.h>
-
-
-#include <boost/random.hpp>
 
 #include <utils.h>
 
@@ -47,15 +40,13 @@ public:
     void createROSTimers();
 
 private:
-    //! função para calcular a distancia percorrida
-    void computeTraveledDistances(float elapsed_time);
 
     //! ROS callbacks
     void dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message); //!< \todo trocar para a mensagem de DVL
     void imuCallback(const sensor_msgs::ImuConstPtr &message);
 
     //! Tf2 callbacks
-    void groundTruthCallback(const ros::TimerEvent &e);
+    void groundTruthCallback(const ros::TimerEvent &event);
 
 
     RobotStateParameters parameters_;
@@ -79,6 +70,8 @@ private:
     //! ROS Topics
     ros::Subscriber dvl_subscriber_;
     ros::Subscriber imu_subscriber_;
+
+    ros::Timer gt_timer_;
 
     //! TF2
     tf2_ros::Buffer buffer_;

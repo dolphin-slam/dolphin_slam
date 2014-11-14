@@ -1,7 +1,5 @@
 #include "robot_state.h"
 
-const float DVL_ERROR = 0.1;
-
 namespace dolphin_slam
 {
 
@@ -13,6 +11,7 @@ RobotState::RobotState(): tf_listener_(buffer_)
 
     loadParameters();
     createROSSubscribers();
+    createROSTimers();
 
 }
 
@@ -34,12 +33,23 @@ void RobotState::createROSSubscribers()
     imu_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::imuCallback,this);
 }
 
+void RobotState::createROSTimers()
+{
+    gt_timer_ = node_handle_.createTimer(ros::Duration(0.1),&RobotState::groundTruthCallback,this);
+}
 
 void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 {
     double elapsed_time;
     geometry_msgs::TransformStamped msg;
     tf2::Transform traveled_distance;
+
+    ros::Time stamp;
+
+    stamp = message->header.stamp;
+    if(stamp.sec == 0){
+        stamp = ros::Time::now();
+    }
 
     if(dr_seq_ = 0)
     {
@@ -67,7 +77,7 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
     dr_stamp_ = message->header.stamp;
     dr_seq_++;
 
-    msg = createTransformStamped(dr_pose_,message->header.stamp,"world","dolphin_slam_dr");
+    msg = createTransformStamped(dr_pose_,stamp,"world","dolphin_slam_dr");
     msg.header.seq = dr_seq_;
     tf_broadcaster_.sendTransform(msg);
 
@@ -82,7 +92,7 @@ void RobotState::imuCallback(const sensor_msgs::ImuConstPtr &message)
     dr_pose_.setRotation(orientation);
 }
 
-void RobotState::groundTruthCallback(const ros::TimerEvent &e)
+void RobotState::groundTruthCallback(const ros::TimerEvent &event)
 {
     geometry_msgs::TransformStamped msg;
 
@@ -97,6 +107,9 @@ void RobotState::groundTruthCallback(const ros::TimerEvent &e)
         return;
     }
 
+    std::cout << "ground truth callback" << std::endl;
+
+
     if(!has_gt_)
     {
         gt_pose_origin_ = getTransform(msg);
@@ -109,10 +122,10 @@ void RobotState::groundTruthCallback(const ros::TimerEvent &e)
     {
         gt_pose_ = getTransform(msg);
 
-        gt_pose_ = gt_pose_origin_*gt_pose_;
+        gt_pose_ = gt_pose_origin_.inverseTimes(gt_pose_);
     }
 
-    createTransformStamped(gt_pose_,msg.header.stamp,"world","dolphin_slam_gt");
+    msg = createTransformStamped(gt_pose_,msg.header.stamp,"world","dolphin_slam_gt");
 
     tf_broadcaster_.sendTransform(msg);
 

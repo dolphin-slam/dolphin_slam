@@ -47,6 +47,8 @@ geometry_msgs::TransformStamped createTransformStamped(tf2::Transform &transform
     msg.header.seq = 0;
     msg.header.stamp = stamp;
 
+    msg.child_frame_id = child_frame_id;
+
     tf2::Vector3 translation = transform.getOrigin();
     tf2::Quaternion quaternion = transform.getRotation();
 
