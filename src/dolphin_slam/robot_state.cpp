@@ -6,7 +6,6 @@ namespace dolphin_slam
 RobotState::RobotState(): tf_listener_(buffer_)
 {
     has_gt_ = false;
-
     dr_seq_ = 0;
 
     loadParameters();
@@ -15,6 +14,8 @@ RobotState::RobotState(): tf_listener_(buffer_)
 
 }
 
+
+
 void RobotState::loadParameters()
 {
 
@@ -22,7 +23,10 @@ void RobotState::loadParameters()
 
     private_nh.param<std::string>("dvl_topic", parameters_.dvl_topic_, "/g500/dvl");
     private_nh.param<std::string>("imu_topic", parameters_.imu_topic_, "/g500/imu");
-    private_nh.param<std::string>("gt_topic", parameters_.gt_topic_, "/ground_truth");
+
+    private_nh.param<std::string>("base_frame", parameters_.base_frame_, "girona500");
+
+    private_nh.param<std::string>("dvl_frame", parameters_.dvl_frame_, "DVLSensor");
 
 
 }
@@ -51,6 +55,9 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
         stamp = ros::Time::now();
     }
 
+    msg = buffer_.lookupTransform(parameters_.dvl_frame_, parameters_.base_frame_, ros::Time(0));
+    dvl2base_transform = getTransform(msg).inverse();
+
     if(dr_seq_ = 0)
     {
         dr_pose_.setIdentity();
@@ -66,15 +73,21 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
             velocity_.setValue(0,0,0);
         }
 
-        elapsed_time = (message->header.stamp - dr_stamp_).toSec();
+        //! found velocity of base frame, or translation of base frame
+        velocity_ = dvl2base_transform*velocity_;
+
+        elapsed_time = (stamp - dr_stamp_).toSec();
 
         traveled_distance = tf2::Transform(dr_pose_.getRotation(),velocity_*elapsed_time);
+
 
         dr_pose_ = dr_pose_*traveled_distance;
 
     }
 
-    dr_stamp_ = message->header.stamp;
+    ROS_DEBUG_STREAM("DVL Velocity = [" << velocity_.x() << " " << velocity_.y() << " " << velocity_.z() << " ]" << "elapsed_time = " << elapsed_time);
+
+    dr_stamp_ = stamp;
     dr_seq_++;
 
     msg = createTransformStamped(dr_pose_,stamp,"world","dolphin_slam_dr");
@@ -106,9 +119,6 @@ void RobotState::groundTruthCallback(const ros::TimerEvent &event)
         ROS_ERROR("%s",ex.what());
         return;
     }
-
-    std::cout << "ground truth callback" << std::endl;
-
 
     if(!has_gt_)
     {

@@ -24,7 +24,9 @@ struct RobotStateParameters
 {
     std::string dvl_topic_;
     std::string imu_topic_;
-    std::string gt_topic_;
+    std::string base_frame_;
+    std::string dvl_frame_;
+
 };
 
 //! \todo Mudar a interface para um tf, possivelmente
