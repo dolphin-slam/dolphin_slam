@@ -39,6 +39,7 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 {
     double elapsed_time;
     geometry_msgs::TransformStamped msg;
+    tf2::Transform traveled_distance;
 
     if(dr_seq_ = 0)
     {
@@ -57,14 +58,16 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 
         elapsed_time = (message->header.stamp - dr_stamp_).toSec();
 
-            dr_pose_ = dr_pose_*(velocity_*elapsed_time);
+        traveled_distance = tf2::Transform(dr_pose_.getRotation(),velocity_*elapsed_time);
+
+        dr_pose_ = dr_pose_*traveled_distance;
 
     }
 
     dr_stamp_ = message->header.stamp;
     dr_seq_++;
 
-    msg = createTransformStamped(dr_pose_,"world","dolphin_slam_dr");
+    msg = createTransformStamped(dr_pose_,message->header.stamp,"world","dolphin_slam_dr");
     msg.header.seq = dr_seq_;
     tf_broadcaster_.sendTransform(msg);
 

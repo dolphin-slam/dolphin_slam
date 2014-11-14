@@ -193,6 +193,7 @@ target_link_libraries(place_cell_node
 add_executable(robot_state_node
     src/dolphin_slam/robot_state.cpp
     src/robot_state_node.cpp
+    src/dolphin_slam/utils.cpp
 )
 
 target_link_libraries(robot_state_node
