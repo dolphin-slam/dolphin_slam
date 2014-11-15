@@ -1,3 +1,7 @@
 dvl_topic: '/g500/dvl'
 imu_topic: '/g500/imu'
 gt_topic: '/gt'
+
+dvl_position: [-0.75, 0, 0]
+dvl_orientation: [0, 0, -2.356]
+

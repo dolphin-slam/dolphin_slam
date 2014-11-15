@@ -16,6 +16,8 @@
 
 #include <utils.h>
 
+#include <angles/angles.h>
+
 
 namespace dolphin_slam
 {
@@ -25,7 +27,8 @@ struct RobotStateParameters
     std::string dvl_topic_;
     std::string imu_topic_;
     std::string base_frame_;
-    std::string dvl_frame_;
+    std::vector<double> dvl_position_;
+    std::vector<double> dvl_orientation_;
 
 };
 
@@ -55,6 +58,7 @@ private:
 
     //! Robot velocity and orientation
     tf2::Vector3 velocity_;
+    tf2::Quaternion orientation_;
 
     tf2::Transform dr_pose_;
     unsigned int dr_seq_;   //! dead reckoning sequencer
@@ -64,6 +68,7 @@ private:
     //! Ground Truth
     tf2::Transform gt_pose_;
     tf2::Transform gt_pose_origin_;
+    tf2::Transform dvl2base_transform_;
     bool has_gt_;
 
     //! ROS Node Handle

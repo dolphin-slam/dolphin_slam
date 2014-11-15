@@ -5,12 +5,28 @@ namespace dolphin_slam
 
 RobotState::RobotState(): tf_listener_(buffer_)
 {
+    tf2::Quaternion quat;
+
+
     has_gt_ = false;
     dr_seq_ = 0;
+
+    //! inicializa a posição e orientação da dvl com valor padrões
+    parameters_.dvl_position_.resize(3,0.0);
+    parameters_.dvl_orientation_.resize(3,0);
 
     loadParameters();
     createROSSubscribers();
     createROSTimers();
+
+
+
+    dvl2base_transform_.setOrigin(tf2::Vector3 (parameters_.dvl_position_[0],parameters_.dvl_position_[1],parameters_.dvl_position_[2]));
+    quat.setRPY(parameters_.dvl_orientation_[0],parameters_.dvl_orientation_[1],parameters_.dvl_orientation_[2]);
+    dvl2base_transform_.setRotation(quat);//! ordem inversa dos angulos de euler
+
+
+
 
 }
 
@@ -26,7 +42,10 @@ void RobotState::loadParameters()
 
     private_nh.param<std::string>("base_frame", parameters_.base_frame_, "girona500");
 
-    private_nh.param<std::string>("dvl_frame", parameters_.dvl_frame_, "DVLSensor");
+    private_nh.getParam("dvl_position",parameters_.dvl_position_);
+    private_nh.getParam("dvl_orientation",parameters_.dvl_orientation_);
+
+
 
 
 }
@@ -46,63 +65,86 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 {
     double elapsed_time;
     geometry_msgs::TransformStamped msg;
-    tf2::Transform traveled_distance;
+
+    tf2::Matrix3x3 last_orientation;
+    tf2::Matrix3x3 new_orientation;
+    tf2::Matrix3x3 dvl_rotation;
+    tf2::Vector3 dvl_translation;
+    tf2::Transform dvl_transform;
+
+    tf2::Vector3 relative_robot_position(0,0,0);
+    tf2::Vector3 absolute_robot_position;
 
     ros::Time stamp;
+
+
+    ROS_DEBUG_STREAM("DVL Velocity = [" << message->bi_x_axis << " " << message->bi_y_axis  << " " << message->bi_z_axis  << " ]" << "elapsed_time = " << elapsed_time);
 
     stamp = message->header.stamp;
     if(stamp.sec == 0){
         stamp = ros::Time::now();
     }
 
-    msg = buffer_.lookupTransform(parameters_.dvl_frame_, parameters_.base_frame_, ros::Time(0));
-    dvl2base_transform = getTransform(msg).inverse();
-
     if(dr_seq_ = 0)
     {
         dr_pose_.setIdentity();
+        dr_stamp_ = stamp;
+        dr_seq_++;
+
+        msg = createTransformStamped(dr_pose_,stamp,"world","dolphin_slam/dead_reckoning");
+        msg.header.seq = dr_seq_;
+        tf_broadcaster_.sendTransform(msg);
+
     }
-    else
+    else if(fabs(message->bi_error) < 1)
     {
-        if(fabs(message->bi_error) < 1)
-        {
-            velocity_.setValue(message->bi_x_axis,message->bi_y_axis,message->bi_z_axis);
-        }
-        else
-        {
-            velocity_.setValue(0,0,0);
-        }
+        velocity_.setValue(message->bi_x_axis,message->bi_y_axis,message->bi_z_axis);
 
-        //! found velocity of base frame, or translation of base frame
-        velocity_ = dvl2base_transform*velocity_;
-
+        //! Compute elapsed time in seconds
         elapsed_time = (stamp - dr_stamp_).toSec();
 
-        traveled_distance = tf2::Transform(dr_pose_.getRotation(),velocity_*elapsed_time);
+        //! get last and new robot orientations
+        last_orientation = dr_pose_.getBasis();
+        new_orientation.setRotation(orientation_);
 
+        //! compute relative dvl rotation and translation
+        dvl_rotation = last_orientation * new_orientation.transpose();
+        dvl_translation = velocity_*elapsed_time;
 
-        dr_pose_ = dr_pose_*traveled_distance;
+        //! create dvl transform
+        dvl_transform.setOrigin(dvl_translation);
+        dvl_transform.setBasis(dvl_rotation);
+
+        std::cout << "dvl_translation = " << dvl_translation.x() << " " <<dvl_translation.y() << " " << dvl_translation.z() << " " << std::endl;
+
+        relative_robot_position = dvl2base_transform_.inverse()*relative_robot_position;
+        relative_robot_position = dvl_transform*relative_robot_position;
+        relative_robot_position = dvl2base_transform_*relative_robot_position;
+
+        absolute_robot_position = dr_pose_ * relative_robot_position;
+
+        dr_pose_.setOrigin(absolute_robot_position);
+        dr_pose_.setRotation(orientation_);
+
+        dr_stamp_ = stamp;
+        dr_seq_++;
+
+        msg = createTransformStamped(dr_pose_,stamp,"world","dolphin_slam/dead_reckoning");
+        msg.header.seq = dr_seq_;
+        tf_broadcaster_.sendTransform(msg);
 
     }
 
-    ROS_DEBUG_STREAM("DVL Velocity = [" << velocity_.x() << " " << velocity_.y() << " " << velocity_.z() << " ]" << "elapsed_time = " << elapsed_time);
 
-    dr_stamp_ = stamp;
-    dr_seq_++;
 
-    msg = createTransformStamped(dr_pose_,stamp,"world","dolphin_slam_dr");
-    msg.header.seq = dr_seq_;
-    tf_broadcaster_.sendTransform(msg);
 
 }
 
 void RobotState::imuCallback(const sensor_msgs::ImuConstPtr &message)
 {
-    tf2::Quaternion orientation;
 
-    orientation.setValue(message->orientation.x,message->orientation.y,message->orientation.z,message->orientation.w);
+    orientation_.setValue(message->orientation.x,message->orientation.y,message->orientation.z,message->orientation.w);
 
-    dr_pose_.setRotation(orientation);
 }
 
 void RobotState::groundTruthCallback(const ros::TimerEvent &event)
@@ -135,7 +177,7 @@ void RobotState::groundTruthCallback(const ros::TimerEvent &event)
         gt_pose_ = gt_pose_origin_.inverseTimes(gt_pose_);
     }
 
-    msg = createTransformStamped(gt_pose_,msg.header.stamp,"world","dolphin_slam_gt");
+    msg = createTransformStamped(gt_pose_,msg.header.stamp,"world","dolphin_slam/ground_truth");
 
     tf_broadcaster_.sendTransform(msg);
 
