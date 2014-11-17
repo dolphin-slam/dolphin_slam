@@ -70,6 +70,10 @@ private:
     tf2::Transform gt_pose_origin_;
     tf2::Transform dvl2base_transform_;
     bool has_gt_;
+    bool has_imu_;
+
+
+    tf2::Quaternion imu_origin_;
 
     //! ROS Node Handle
     ros::NodeHandle node_handle_;
