@@ -26,7 +26,7 @@ RobotState::RobotState(): tf_listener_(buffer_)
 
     dvl2base_transform_.setOrigin(tf2::Vector3 (parameters_.dvl_position_[0],parameters_.dvl_position_[1],parameters_.dvl_position_[2]));
     quat.setRPY(parameters_.dvl_orientation_[0],parameters_.dvl_orientation_[1],parameters_.dvl_orientation_[2]);
-    dvl2base_transform_.setRotation(quat);//! ordem inversa dos angulos de euler
+    dvl2base_transform_.setRotation(quat);
 
 }
 
@@ -93,7 +93,7 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
         stamp = ros::Time::now();
     }
 
-    if(dr_seq_ = 0)
+    if(dr_seq_ == 0)
     {
         dr_pose_.setIdentity();
         dr_stamp_ = stamp;
@@ -180,7 +180,7 @@ void RobotState::imuCallback(const sensor_msgs::ImuConstPtr &message)
     {
         imu_origin_.setValue(message->orientation.x,message->orientation.y,message->orientation.z,message->orientation.w);
         has_imu_ = true;
-        orientation_.setEulerZYX(0,0,0);
+        orientation_.setRPY(0,0,0);
     }
     else
     {
