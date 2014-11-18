@@ -137,8 +137,14 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 }
 
 
-bool LocalViewModule::computeMatches()
+void  LocalViewModule::computeMatches()
 {
+    if (cells_.size() == 0)
+    {
+        createNewCell();
+        return ;
+    }
+
     if(parameters_.matching_algorithm_ == "correlation")
     {
         computeCorrelations();
@@ -255,6 +261,8 @@ void LocalViewModule::createNewCell()
     new_cell.active_ = true;
 
     best_match_id_ = new_cell.id_;
+
+    bow_descriptors_.push_back(bow_current_descriptor_);
 
     cells_.push_back(new_cell);
 

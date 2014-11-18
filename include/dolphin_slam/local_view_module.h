@@ -74,7 +74,7 @@ private:
 
     void timerCallback(const ros::TimerEvent &event);
 
-    bool computeMatches();
+    void computeMatches();
     void computeCorrelations();
     void computeFabmap();
 
