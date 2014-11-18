@@ -119,7 +119,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     if(number_of_created_experiences_ == 0)
     {
         //! set first pose at the same place as the ground truth
-        new_experience->pose_ = new_experience->gt_pose_;
+        new_experience->pose_ = new_experience->dr_pose_;
     }
     else
     {
@@ -127,7 +127,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
         current_experience = &map_[current_experience_descriptor_];
 
         //! Compute traveled distance since last experience
-        transform = new_experience->dr_pose_*current_experience->dr_pose_.inverse();
+        transform = current_experience->dr_pose_.inverse()*new_experience->dr_pose_;
 
         //! compute new pose based on traveled distance and last pose
         new_experience->pose_ = transform*current_experience->pose_;

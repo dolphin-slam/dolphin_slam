@@ -56,7 +56,7 @@ void LocalViewModule::loadParameters()
 
 void LocalViewModule::createROSSubscribers()
 {
-    descriptors_subscriber_ = node_handle_.subscribe("",1,&LocalViewModule::descriptors_callback,this);
+    descriptors_subscriber_ = node_handle_.subscribe(parameters_.descriptors_topic_,1,&LocalViewModule::descriptors_callback,this);
 }
 
 void LocalViewModule::createROSPublishers()
