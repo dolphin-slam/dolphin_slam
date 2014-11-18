@@ -39,10 +39,10 @@ void ImageProcessing::loadParameters()
     private_nh_.param<string>("image_transport",parameters_.image_transport_,"raw");
 
     //! string output_topic;
-    private_nh_.param<string>("output_topic",parameters_.descriptors_topic_,"/descriptors");
+    private_nh_.param<string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
     //! string output_topic;
-    private_nh_.param<string>("output_topic",parameters_.image_keypoints_topic_,"/image_keypoints");
+    private_nh_.param<string>("keypoints_topic",parameters_.image_keypoints_topic_,"/image_keypoints");
 
     //! int frames_to_jump;
     private_nh_.param<int>("frames_to_jump",parameters_.frames_to_jump_,0);

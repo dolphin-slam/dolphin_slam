@@ -52,11 +52,12 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.param<double>("input_learning_rate",parameters_.input_learning_rate_,1);
 
+    private_nh.param<int>("min_input_age",parameters_.min_input_age_,5);
+
     private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
     private_nh.param<std::string>("weight_function",parameters_.weight_function_,"mexican_hat");
 
-    private_nh.param<int>("min_input_age",parameters_.min_input_age_,5);
 
 }
 

@@ -42,7 +42,7 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
-    private_nh.param<std::string>("matching_algorithm",parameters_.matching_algorithm_,"histogram_correlation");
+    private_nh.param<std::string>("matching_algorithm",parameters_.matching_algorithm_,"correlation");
 
     private_nh.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
