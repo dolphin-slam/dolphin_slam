@@ -25,6 +25,7 @@ LocalViewModule::LocalViewModule()
 
     init();
 
+
     log_file_.open("local_view.log");
 
 }
@@ -84,10 +85,11 @@ void LocalViewModule::init()
     fs["descriptors"] >> bow_training_descriptors_;
     fs.release();
 
+
     bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
     bow_extractor_->setVocabulary(bow_vocabulary_);
 
-    fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU);
+    fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU,bow_training_descriptors_.rows);
 
     fabmap_->addTraining(bow_training_descriptors_);
 
