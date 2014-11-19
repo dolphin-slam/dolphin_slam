@@ -76,7 +76,17 @@ void ExperienceMap::getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp)
     }
     catch (tf2::ExtrapolationException)
     {
-        //! continue processing
+        try{
+            msg = tf_buffer_.lookupTransform("world","dolphin_slam/gt",ros::Time(0));
+        }
+        catch (tf2::ExtrapolationException e)
+        {
+            //! continue processing
+        }
+    }
+    catch(...)
+    {
+
     }
 
     gt_pose = getTransform(msg);
@@ -92,9 +102,18 @@ void ExperienceMap::getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp)
     }
     catch (tf2::ExtrapolationException)
     {
-        //! continue processing
+        try{
+            msg = tf_buffer_.lookupTransform("world","dolphin_slam/dr",ros::Time(0));
+        }
+        catch (tf2::ExtrapolationException e)
+        {
+            //! continue processing
+        }
     }
+    catch(...)
+    {
 
+    }
 
     dr_pose = getTransform(msg);
 }
@@ -339,19 +358,26 @@ void ExperienceMap::publishExperienceMap()
     int i = 0;
     foreach (LinkDescriptor l, boost::edges(map_)){
         e1 = boost::source(l, map_);
+        e2 = boost::target(l, map_);
+        std::cout << " ( " << map_[e1].id_ << " , " << map_[e2].id_ << " ) \t\t";
+
         point = map_[e1].pose_.getOrigin();
+
+        std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " ) \t\t";
+
         message.points[i].x = point.x();
         message.points[i].y = point.y();
         message.points[i].z = point.z();
         i++;
-        e2 = boost::target(l, map_);
         point = map_[e2].pose_.getOrigin();
+
+        std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " )" << std::endl;
+
         message.points[i].x = point.x();
         message.points[i].y = point.y();
         message.points[i].z = point.z();
         i++;
 
-        std::cout << " ( " << map_[e1].id_ << " , " << map_[e2].id_ << " )" << std::endl;
     }
 
     map_publisher_.publish(message);

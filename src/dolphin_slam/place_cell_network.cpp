@@ -710,9 +710,18 @@ bool PlaceCellNetwork::getTraveledDistance(double &delta_x,double &delta_y,doubl
     }
     catch (tf2::ExtrapolationException e)
     {
-        //! continue processing
+        try{
+            transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",ros::Time(0));
+        }
+        catch (tf2::ExtrapolationException e)
+        {
+            //! continue processing
+        }
     }
+    catch(...)
+    {
 
+    }
 
     delta_x = transform.transform.translation.x - last_pose_.transform.translation.x;
     delta_y = transform.transform.translation.y - last_pose_.transform.translation.y;

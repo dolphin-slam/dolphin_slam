@@ -5,7 +5,7 @@
 
     <param name="/use_sim_time" type="bool" value="true" />
 
-    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag -q -r 0.5 --clock" required="true"/>
+    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag -q -r 0.25 --clock" required="true"/>
     
     <node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
             <rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />

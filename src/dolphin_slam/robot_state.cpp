@@ -45,16 +45,15 @@ void RobotState::loadParameters()
     private_nh.getParam("dvl_position",parameters_.dvl_position_);
     private_nh.getParam("dvl_orientation",parameters_.dvl_orientation_);
 
-
-
-
 }
 
 void RobotState::createROSSubscribers()
 {
+
     dvl_subscriber_ = node_handle_.subscribe(parameters_.dvl_topic_,1,&RobotState::dvlCallback,this);
     imu_subscriber_ = node_handle_.subscribe(parameters_.imu_topic_,1,&RobotState::imuCallback,this);
 }
+
 
 void RobotState::createROSTimers()
 {

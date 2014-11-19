@@ -39,7 +39,6 @@ void FabmapTraining::loadParameters()
 void FabmapTraining::createROSSubscribers()
 {
     descriptors_subscriber_ = node_handle_.subscribe(parameters_.descriptors_topic_,1,&FabmapTraining::descriptorsCallback,this);
-
 }
 
 void FabmapTraining::createROSTimers()
