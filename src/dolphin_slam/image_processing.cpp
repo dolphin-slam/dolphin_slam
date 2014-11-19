@@ -121,12 +121,16 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 
     if (count == 0){
 
+        ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
+
         image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
         //! Detect SURF keypoints in the image
         surf_->detect(image_->image,keypoints_);
         //! Compute SURF descriptors
         surf_->compute(image_->image,keypoints_,descriptors_);
+
+        ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
         publishDescriptors();
 

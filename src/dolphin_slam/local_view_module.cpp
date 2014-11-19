@@ -116,6 +116,8 @@ void LocalViewModule::timerCallback(const ros::TimerEvent& event)
 void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 {
 
+    ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_);
+
     time_monitor_.start();
 
     image_seq_ = msg->image_seq_;
@@ -127,10 +129,17 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 
     computeImgDescriptor(descriptors);
 
+    ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_);
+
     computeMatches();
 
     time_monitor_.finish();
+
+    publishActiveCells();
+
+
     time_monitor_.print();
+
 
     execution_time = time_monitor_.getDuration();
 
@@ -143,22 +152,23 @@ void  LocalViewModule::computeMatches()
 {
     if (cells_.size() == 0)
     {
-        createNewCell();
-        return ;
-    }
-
-    if(parameters_.matching_algorithm_ == "correlation")
-    {
-        computeCorrelations();
-    }
-    else if(parameters_.matching_algorithm_ == "fabmap")
-    {
-        computeFabmap();
+        new_place_ = true;
     }
     else
     {
-        ROS_ERROR_STREAM("Matching algorithm is wrong.");
-        exit(0);
+        if(parameters_.matching_algorithm_ == "correlation")
+        {
+            computeCorrelations();
+        }
+        else if(parameters_.matching_algorithm_ == "fabmap")
+        {
+            computeFabmap();
+        }
+        else
+        {
+            ROS_ERROR_STREAM("Matching algorithm is wrong.");
+            exit(0);
+        }
     }
 
     if(new_place_)
@@ -218,6 +228,9 @@ void LocalViewModule::computeFabmap()
 {
     std::vector<cv::of2::IMatch> imatch;
 
+    ROS_DEBUG_STREAM("Compute Fabmap");
+
+
     fabmap_->compare(bow_current_descriptor_,bow_descriptors_,imatch);
 
     //! Test for new places
@@ -242,6 +255,8 @@ void LocalViewModule::computeFabmap()
         }
 
     }
+
+    ROS_DEBUG_STREAM("Number of stored places: " << imatch.size()-1 << " best match = " << best_match->imgIdx);
 
     new_place_ = (best_match->imgIdx == -1);
 
@@ -285,9 +300,10 @@ void LocalViewModule::publishActiveCells(){
     msg.image_seq_ = image_seq_;
     msg.image_stamp_ = image_stamp_;
 
+    msg.most_active_cell_ = best_match_id_;
+
     if(parameters_.local_view_activation_ == "single")
     {
-        msg.most_active_cell_ = best_match_id_;
         msg.cell_id_.push_back(best_match_id_);
         msg.cell_rate_.push_back(cells_[best_match_id_].rate_);
 
@@ -297,7 +313,6 @@ void LocalViewModule::publishActiveCells(){
     {
         log_file_ << (ros::Time::now() - start_stamp_).toSec() << " ";
 
-        msg.most_active_cell_ = best_match_id_;
         std::vector<LocalViewCell>::iterator cell_iterator_;
         for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
         {

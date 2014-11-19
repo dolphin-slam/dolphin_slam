@@ -221,11 +221,16 @@ void PlaceCellNetwork::createROSTimers()
 
 void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &message)
 {
+    ROS_DEBUG_STREAM("Local View Callback received");
+
 
     image_seq_ = message->image_seq_;
     image_stamp_ = message->image_stamp_;
 
     experience_event_ = (most_active_lv_cell_ != message->most_active_cell_);
+
+    ROS_DEBUG_STREAM("Experience event = " << experience_event_ << " Most active LVC = " << message->most_active_cell_);
+
 
     //! atualiza a local view mais ativa no momento
     most_active_lv_cell_ = message->most_active_cell_;
@@ -700,7 +705,14 @@ bool PlaceCellNetwork::getTraveledDistance(double &delta_x,double &delta_y,doubl
     geometry_msgs::TransformStamped transform;
     //! TODO Implement tf here
 
-    transform = tf_buffer_.lookupTransform("world","dead_reckoning",image_stamp_);
+    try{
+        transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",image_stamp_);
+    }
+    catch (tf2::ExtrapolationException e)
+    {
+        //! continue processing
+    }
+
 
     delta_x = transform.transform.translation.x - last_pose_.transform.translation.x;
     delta_y = transform.transform.translation.y - last_pose_.transform.translation.y;

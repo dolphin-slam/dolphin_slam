@@ -70,7 +70,7 @@ struct Experience
 */
 struct Link
 {
-    tf2::Transform transform_;
+    tf2::Vector3 translation_; //! expressed in world frame
 };
 
 
@@ -87,6 +87,7 @@ typedef boost::graph_traits<Map>::edge_descriptor LinkDescriptor;
 
 //! Experience iterator
 typedef boost::graph_traits<Map>::vertex_iterator ExperienceIterator;
+
 
 
 typedef std::pair <LinkDescriptor,bool> ResultOfLinkCreation;

@@ -19,6 +19,9 @@
 
 #include <geometry_msgs/TransformStamped.h>
 
+#include <tf2/exceptions.h>
+
+
 #include <local_view_module.h>
 
 // OpenCV
