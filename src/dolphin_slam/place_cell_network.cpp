@@ -703,24 +703,29 @@ void PlaceCellNetwork::pathIntegration()
 bool PlaceCellNetwork::getTraveledDistance(double &delta_x,double &delta_y,double &delta_z)
 {
     geometry_msgs::TransformStamped transform;
-    //! TODO Implement tf here
 
     try{
         transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",image_stamp_);
     }
+    catch (tf2::LookupException e)
+    {
+        //! First time, there is no transform published yet
+        transform = geometry_msgs::TransformStamped();
+    }
     catch (tf2::ExtrapolationException e)
     {
+        //! The time was not published. Get the last published time
         try{
             transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",ros::Time(0));
         }
-        catch (tf2::ExtrapolationException e)
+        catch (tf2::TransformException e)
         {
-            //! continue processing
+            ROS_ERROR_STREAM("TF exception" << e.what());
         }
     }
-    catch(...)
+    catch(tf2::TransformException e)
     {
-
+        ROS_ERROR_STREAM("TF exception" << e.what());
     }
 
     delta_x = transform.transform.translation.x - last_pose_.transform.translation.x;

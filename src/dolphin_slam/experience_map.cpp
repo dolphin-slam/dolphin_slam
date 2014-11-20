@@ -68,54 +68,64 @@ void ExperienceMap::createROSPublishers()
 
 void ExperienceMap::getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp)
 {
-    geometry_msgs::TransformStamped msg;
+    geometry_msgs::TransformStamped transform;
 
-    try
-    {
-        msg = tf_buffer_.lookupTransform("world","dolphin_slam/gt",stamp);
+    try{
+        transform = tf_buffer_.lookupTransform("world","dolphin_slam/gt",stamp);
     }
-    catch (tf2::ExtrapolationException)
+    catch (tf2::LookupException e)
     {
+        //! First time, there is no transform published yet
+        transform = geometry_msgs::TransformStamped();
+    }
+    catch (tf2::ExtrapolationException e)
+    {
+        //! The time was not published. Get the last published time
         try{
-            msg = tf_buffer_.lookupTransform("world","dolphin_slam/gt",ros::Time(0));
+            transform = tf_buffer_.lookupTransform("world","dolphin_slam/gt",ros::Time(0));
         }
-        catch (tf2::ExtrapolationException e)
+        catch (tf2::TransformException e)
         {
-            //! continue processing
+            ROS_ERROR_STREAM("TF exception" << e.what());
         }
     }
-    catch(...)
+    catch(tf2::TransformException e)
     {
-
+        ROS_ERROR_STREAM("TF exception" << e.what());
     }
 
-    gt_pose = getTransform(msg);
+    gt_pose = getTransform(transform);
 }
 
 void ExperienceMap::getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp)
 {
-    geometry_msgs::TransformStamped msg;
+    geometry_msgs::TransformStamped transform;
 
-    try
-    {
-        msg = tf_buffer_.lookupTransform("world","dolphin_slam/dr",stamp);
+    try{
+        transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",stamp);
     }
-    catch (tf2::ExtrapolationException)
+    catch (tf2::LookupException e)
     {
+        //! First time, there is no transform published yet
+        transform = geometry_msgs::TransformStamped();
+    }
+    catch (tf2::ExtrapolationException e)
+    {
+        //! The time was not published. Get the last published time
         try{
-            msg = tf_buffer_.lookupTransform("world","dolphin_slam/dr",ros::Time(0));
+            transform = tf_buffer_.lookupTransform("world","dolphin_slam/dr",ros::Time(0));
         }
-        catch (tf2::ExtrapolationException e)
+        catch (tf2::TransformException e)
         {
-            //! continue processing
+            ROS_ERROR_STREAM("TF exception" << e.what());
         }
     }
-    catch(...)
+    catch(tf2::TransformException e)
     {
-
+        ROS_ERROR_STREAM("TF exception" << e.what());
     }
 
-    dr_pose = getTransform(msg);
+    dr_pose = getTransform(transform);
 }
 
 void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
