@@ -732,7 +732,7 @@ bool PlaceCellNetwork::getTraveledDistance(double &delta_x,double &delta_y,doubl
     delta_y = transform.transform.translation.y - last_pose_.transform.translation.y;
     delta_z = transform.transform.translation.z - last_pose_.transform.translation.z;
 
-    last_pose_ = transform.transform;
+    last_pose_ = transform;
 
 }
 
