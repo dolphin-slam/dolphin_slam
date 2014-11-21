@@ -8,8 +8,11 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_)
+ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer(100), it_(node_handle_)
 {
+    image_index_begin = 0;
+    image_index_end = 0;
+
     max_id_experience_ = 0;
     number_of_recognized_experiences_ = 0;
     number_of_created_experiences_ = 0;
@@ -20,6 +23,8 @@ ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_)
     createROSPublishers();
 
     createROSSubscribers();
+
+    sift_ = new cv::SIFT();//! arrumar os parametros do sift para um melhor aproveitamento
 
     std::string filename;
     filename = "experience_map_error_" + boost::lexical_cast<std::string>(test_number_) + ".txt";
@@ -43,13 +48,29 @@ ExperienceMap::~ExperienceMap()
 
 void ExperienceMap::loadParameters()
 {
-    node_handle_.param<double>("match_threshold",parameters_.match_threshold_,0.8);
+
+    ros::NodeHandle private_nh_("~");
+
+    private_nh_.param<double>("match_threshold",parameters_.match_threshold_,0.8);
+
+    //! string image_topic;
+    private_nh_.param<std::string>("image_topic",parameters_.image_topic_,"/image_raw");
+
+    //! string image_transport;
+    private_nh_.param<std::string>("image_transport",parameters_.image_transport_,"raw");
 
 }
 
 void ExperienceMap::createROSSubscribers()
 {
     experience_event_subscriber_ = node_handle_.subscribe("experience_event",1000,&ExperienceMap::experienceEventCallback,this);
+
+    //! hint to modify the image_transport. Here I use raw transport
+    image_transport::TransportHints hints(parameters_.image_transport_,ros::TransportHints(),node_handle_);
+
+    //! image subscription
+    image_subscriber_ = it_.subscribe(parameters_.image_topic_,1,&ExperienceMap::imageCallback,this,hints);
+
 }
 
 void ExperienceMap::createROSPublishers()
@@ -63,6 +84,28 @@ void ExperienceMap::createROSPublishers()
     execution_time_publisher_ = node_handle_.advertise<dolphin_slam::ExecutionTime>("execution_time",1,false);
 
     error_publisher_ = node_handle_.advertise<dolphin_slam::Error>("error",1,false);
+}
+
+void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
+{
+    static cv_bridge::CvImageConstPtr image_;
+
+    //! convert to opencv image
+    image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+
+    //! assign new image to the buffer
+    image_buffer[image_index_end] = std::make_pair(image_->image,image->header.seq);
+
+    //! increase index to last image
+    image_index_end = (image_index_end+1)%image_buffer.size();
+
+
+    if(image_index_end == image_index_begin)
+    {
+        ROS_ERROR("Image buffer is full");
+    }
+
+
 }
 
 
@@ -152,6 +195,23 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! set experience activation rate
     new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
+    //! set image
+    bool image_found = false;
+    for(int i=image_index_begin;i != image_index_end;i++)
+    {
+        //! look for same image seq
+        if(image_buffer[i].second == event->lv_cells_.image_seq_)
+        {
+            image_found= true;
+            new_experience->image_ = image_buffer[i].first;
+            image_index_begin = i+1;
+            break;
+        }
+    }
+
+    if(!image_found)
+        ROS_ERROR("Image not found on image_buffer");
+
     //! set ground truth
     getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);
 
@@ -193,6 +253,27 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
 
 }
 
+/**
+ * @brief Compute image transform
+ *
+ * @param current_image Current captured image
+ * @param image Captured image on match experience
+ * @return tf2::Transform relative transform to compute position of image in current_image frame
+ */
+tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &image)
+{
+    tf2::Transform transform;
+
+    //! Compute sift descriptors
+
+    //! Compute descriptors matches
+
+    //! Compute transform with RANSAC
+
+    return transform;
+}
+
+
 //! compute matches between new experience(current_experience_descriptor) and all other experiences
 void ExperienceMap::computeMatches()
 {
@@ -201,6 +282,7 @@ void ExperienceMap::computeMatches()
     Link * link_ptr;
     double similarity;
     tf2::Vector3 translation;
+    tf2::Transform image_transform;
 
     BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
         if(exp != current_experience_descriptor_)
@@ -217,6 +299,7 @@ void ExperienceMap::computeMatches()
     BOOST_FOREACH(ExperienceDescriptor exp, matches) {
         //! \todo
         //! compute transform between images
+        image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
 
         //! create links between experiences
         link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;

@@ -3,12 +3,13 @@
 
 #include <boost/graph/adjacency_list.hpp> //!< biblioteca para grafos
 #include <boost/graph/graph_traits.hpp>
-#include <opencv/cv.h>
 
 #include <local_view_module.h>
 #include <dolphin_slam/ExperienceEvent.h>
 
 #include <tf2/LinearMath/Transform.h>
+
+#include <opencv2/core/mat.hpp>
 
 
 namespace dolphin_slam
@@ -27,6 +28,8 @@ struct Experience
     int pc_index_[3];    //!< Neuron active on creation of experience
 
     int lv_cell_id_;
+
+    cv::Mat image_;
 
     tf2::Transform pose_;
     tf2::Transform gt_pose_;

@@ -9,7 +9,10 @@
 #include <nav_msgs/Odometry.h>
 #include <utils.h>
 
-
+#include <opencv2/nonfree/features2d.hpp>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Image.h>
 
 #include <fstream>
 
@@ -39,6 +42,8 @@ namespace dolphin_slam
 
 struct ExperienceMapParameters
 {
+    std::string image_topic_;
+    std::string image_transport_;
     double match_threshold_;
 };
 
@@ -139,6 +144,19 @@ private:
     double execution_time_;
 
 
+    image_transport::ImageTransport it_;
+    image_transport::Subscriber image_subscriber_;
+    cv::Ptr<cv::SIFT> sift_;
+
+    std::vector < std::pair<cv::Mat,int> > image_buffer; //! buffer to store image and image_seq
+    int image_index_begin;
+    int image_index_end;
+
+
+
+    void imageCallback(const sensor_msgs::ImageConstPtr &image);
+
+    tf2::Transform getImageTransform(cv::Mat &current_image, cv::Mat &image);
 };
 
 }  //namespace

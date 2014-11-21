@@ -80,7 +80,6 @@ private:
     std::vector<cv::KeyPoint> keypoints_;
 
     cv_bridge::CvImageConstPtr image_;
-    int image_index_; //! to be defined in next versions
 
 };
 
