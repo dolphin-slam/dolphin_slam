@@ -267,10 +267,43 @@ tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &
     tf2::Transform transform;
 
     //! Compute sift descriptors
+    vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    cv::Mat descriptors_1, descriptors_2;
+
+    sift_->detect(current_image, keypoints_1);
+    sift_->detect(image, keypoints_2);
+
+    sift_->compute(current_image, keypoints_1, descriptors_1);
+    sift_->compute(image, keypoints_2, descriptors_2);
 
     //! Compute descriptors matches
+    cv::FlannBasedMatcher matcher;
+    std::vector< cv::DMatch > matches;
+    matcher.match(descriptors_1, descriptors_2, matches);
 
-    //! Compute transform with RANSAC
+    //! Receiving only good matches
+    std::vector< cv::DMatch > good_matches;
+
+    double min_dist = 100;
+    for( int i = 0; i < descriptors_1.rows; i++ )
+    {
+        if( matches[i].distance <= std::max(2*min_dist, 0.02) )
+        {
+            good_matches.push_back( matches[i]);
+        }
+    }
+
+    std::vector< cv::Point2f > scene_1;
+    std::vector< cv::Point2f > scene_2;
+    for( int i = 0; i < good_matches.size(); i++ )
+    {
+        //-- Get the keypoints from the good matches
+        scene_1.push_back( keypoints_1[ good_matches[i].queryIdx ].pt );
+        scene_2.push_back( keypoints_2[ good_matches[i].trainIdx ].pt );
+    }
+
+    //! Finding homography with RANSAC
+    cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
 
     return transform;
 }
@@ -330,15 +363,15 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     time_monitor_.finish();
 
-//    calculeExperienceMapError();
-//    calculeDeadReckoningError();
-//    calculeLocalisationError();
+    //    calculeExperienceMapError();
+    //    calculeDeadReckoningError();
+    //    calculeLocalisationError();
 
     publishExperienceMap();
     publishDeadReckoning();
     publishGroundTruth();
-//    publishError();
-//    publishExecutionTime();
+    //    publishError();
+    //    publishExecutionTime();
 
 
     experience_map_error_file_ << experience_map_error_ << " " <<

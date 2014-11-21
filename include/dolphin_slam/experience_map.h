@@ -9,7 +9,11 @@
 #include <nav_msgs/Odometry.h>
 #include <utils.h>
 
-#include <opencv2/nonfree/features2d.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
