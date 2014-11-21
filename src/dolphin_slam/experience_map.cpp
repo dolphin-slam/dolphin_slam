@@ -90,6 +90,8 @@ void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
 {
     static cv_bridge::CvImageConstPtr image_;
 
+    ROS_DEBUG_STREAM("Image received on experience map. Image_seq = " << image->header.seq);
+
     //! convert to opencv image
     image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
