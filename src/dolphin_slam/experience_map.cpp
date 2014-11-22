@@ -293,6 +293,7 @@ tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &
         }
     }
 
+
     std::vector< cv::Point2f > scene_1;
     std::vector< cv::Point2f > scene_2;
     for( int i = 0; i < good_matches.size(); i++ )
