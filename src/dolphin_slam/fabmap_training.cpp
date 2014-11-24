@@ -43,7 +43,7 @@ void FabmapTraining::createROSSubscribers()
 
 void FabmapTraining::createROSTimers()
 {
-    timeout_ = node_handle_.createTimer(ros::Duration(5),&FabmapTraining::train,this,false);
+    timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::train,this,false);
 }
 
 void FabmapTraining::init()

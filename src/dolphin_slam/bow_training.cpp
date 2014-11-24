@@ -34,7 +34,7 @@ void BoWTraining::createROSSubscribers()
 
 void BoWTraining::createROSTimers()
 {
-    timeout_ = node_handle_.createTimer(ros::Duration(5),&BoWTraining::train,this,false);
+    timeout_ = node_handle_.createTimer(ros::Duration(20),&BoWTraining::train,this,false);
 }
 
 void BoWTraining::init()

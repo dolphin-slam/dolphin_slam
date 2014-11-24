@@ -1,5 +1,7 @@
 <launch>
 
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
+
     <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag -q -u 30" required="false"/>
 
     <include file="$(find dolphin_slam)/launch/image_processing.launch" />
@@ -7,6 +9,8 @@
     <node name="fabmap_training" pkg="dolphin_slam" type="bow_training" required="true">
             <rosparam command="load" file="$(find dolphin_slam)/config/bow_training.yaml" />
     </node>
+
+    <node name="record" pkg="rosbag" type="record" args="\descriptors \image_keypoints -o bow_training" required="false"/>
 
 </launch>
 

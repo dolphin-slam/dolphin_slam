@@ -3,4 +3,4 @@ image_topic: '/uwsim/camera1'
 image_transport: 'raw'
 descriptors_topic: '/descriptors'
 keypoints_topic: '/image_keypoints'
-frames_to_jump: 0
+frames_to_jump: 50
