@@ -15,8 +15,6 @@ LocalViewModule::LocalViewModule()
     metrics_.creation_count_ = 0;
     metrics_.recognition_count_ = 0;
 
-    start_stamp_ = ros::Time::now();
-
     loadParameters();
 
     createROSSubscribers();
@@ -115,7 +113,14 @@ void LocalViewModule::timerCallback(const ros::TimerEvent& event)
 void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 {
 
+
     ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_);
+
+
+    if(metrics_.creation_count_ == 0)
+    {
+        start_stamp_ = ros::Time::now();
+    }
 
     time_monitor_.start();
 
