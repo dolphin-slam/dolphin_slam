@@ -12,8 +12,8 @@ namespace dolphin_slam
 LocalViewModule::LocalViewModule()
 {
 
-    number_of_created_local_views = 0;
-    number_of_recognized_local_views = 0;
+    metrics_.creation_count_ = 0;
+    metrics_.recognition_count_ = 0;
 
     start_stamp_ = ros::Time::now();
 
@@ -25,14 +25,15 @@ LocalViewModule::LocalViewModule()
 
     init();
 
-
-    log_file_.open("local_view.log");
+    log_file_rate_.open("localviews_rate.log");
+    log_file_metrics_.open("localviews_metrics.log");
 
 }
 
 LocalViewModule::~LocalViewModule()
 {
-    log_file_.close();
+    log_file_rate_.close();
+    log_file_metrics_.close();
 }
 
 void LocalViewModule::loadParameters()
@@ -120,6 +121,8 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 
     time_monitor_.start();
 
+    last_best_match_id_ = best_match_id_;
+
     image_seq_ = msg->image_seq_;
     image_stamp_ = msg->image_stamp_;
 
@@ -140,8 +143,19 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 
     time_monitor_.print();
 
-
-    execution_time = time_monitor_.getDuration();
+    //! Compute metrics
+    if(new_place_)
+    {
+        metrics_.creation_count_++;
+    }
+    else
+    {
+        if(best_match_id_ != last_best_match_id_)
+        {
+            metrics_.recognition_count_++;
+        }
+    }
+    metrics_.execution_time_ = time_monitor_.getDuration();
 
     publishExecutionTime();
 
@@ -177,6 +191,26 @@ void  LocalViewModule::computeMatches()
     }
 
 
+}
+
+void LocalViewModule::writeLog()
+{
+    double stamp = (ros::Time::now() - start_stamp_).toSec();
+    log_file_rate_ << stamp << " ";
+
+    std::vector<LocalViewCell>::iterator cell_iterator_;
+    for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
+    {
+        log_file_rate_ << cell_iterator_->rate_ << " " ;
+    }
+    log_file_rate_ << std::endl;
+
+    log_file_metrics_ << stamp << " "
+                      << best_match_id_ << " "
+                      << metrics_.execution_time_ << " "
+                      << metrics_.creation_count_ << " "
+                      << metrics_.recognition_count_ << " "
+                      << std::endl;
 }
 
 
@@ -219,7 +253,12 @@ void LocalViewModule::computeCorrelations()
 
     if(!new_place_)
     {
+        new_rate_ = 0;
         best_match_id_ = best_match->id_;
+    }
+    else
+    {
+        new_rate_ = 1;
     }
 
 }
@@ -246,6 +285,10 @@ void LocalViewModule::computeFabmap()
             //! store the match probability on the cell structure
             cells_[imatch_iterator->imgIdx].rate_ = imatch_iterator->match;
             cells_[imatch_iterator->imgIdx].active_ = false;
+        }
+        else
+        {
+            new_rate_ = imatch_iterator->match;
         }
 
         //! compute best match
@@ -274,7 +317,7 @@ void LocalViewModule::createNewCell()
     LocalViewCell new_cell;
 
     new_cell.id_ = cells_.size();
-    new_cell.rate_ = 1;
+    new_cell.rate_ = new_rate_;
     new_cell.active_ = true;
 
     best_match_id_ = new_cell.id_;
@@ -307,11 +350,11 @@ void LocalViewModule::publishActiveCells(){
         msg.cell_id_.push_back(best_match_id_);
         msg.cell_rate_.push_back(cells_[best_match_id_].rate_);
 
-        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " " << best_match_id_ << " " << cells_[best_match_id_].rate_ << endl;
+        log_file_rate_ << (ros::Time::now() - start_stamp_).toSec() << " " << best_match_id_ << " " << cells_[best_match_id_].rate_ << endl;
     }
     else if(parameters_.local_view_activation_ == "multiple")
     {
-        log_file_ << (ros::Time::now() - start_stamp_).toSec() << " ";
+        log_file_rate_ << (ros::Time::now() - start_stamp_).toSec() << " ";
 
         std::vector<LocalViewCell>::iterator cell_iterator_;
         for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
@@ -320,10 +363,10 @@ void LocalViewModule::publishActiveCells(){
             {
                 msg.cell_id_.push_back(cell_iterator_->id_);
                 msg.cell_rate_.push_back(cell_iterator_->rate_);
-                log_file_ << cell_iterator_->id_ << " " << cell_iterator_->rate_ << " " ;
+                log_file_rate_ << cell_iterator_->id_ << " " << cell_iterator_->rate_ << " " ;
             }
         }
-        log_file_ << endl;
+        log_file_rate_ << endl;
     }
     else
     {

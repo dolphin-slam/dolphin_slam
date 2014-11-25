@@ -42,11 +42,20 @@ struct LocalViewParameters
     std::string descriptors_topic_;
 };
 
+
+struct LocalViewMetrics
+{
+    int creation_count_;
+    int recognition_count_;
+    double execution_time_;
+};
+
 struct LocalViewCell
 {
     int id_;
     double rate_;
     bool active_;
+
 };
 
 class LocalViewModule
@@ -72,6 +81,8 @@ private:
     void publishExecutionTime();
     void publishActiveCells();
 
+    void writeLog();
+
     void timerCallback(const ros::TimerEvent &event);
 
     void computeMatches();
@@ -95,7 +106,12 @@ private:
     std::vector<cv::Mat> bow_descriptors_;
     std::vector<LocalViewCell> cells_;
     bool new_place_;
+
+    double new_rate_;
     int best_match_id_;
+
+    int last_best_match_id_;
+
     int image_seq_;
     ros::Time image_stamp_;
 
@@ -105,7 +121,8 @@ private:
     ros::Publisher execution_time_publisher_;
 
 
-    std::ofstream log_file_;
+    std::ofstream log_file_rate_;
+    std::ofstream log_file_metrics_;
 
 
     TimeMonitor time_monitor_;
@@ -113,9 +130,7 @@ private:
     ros::Timer timer_;
 
     //! Metrics
-    int number_of_created_local_views;
-    int number_of_recognized_local_views;
-    double execution_time;
+    LocalViewMetrics metrics_;
 
     bool has_new_local_view_cell;
 
