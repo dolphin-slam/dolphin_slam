@@ -138,9 +138,6 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 
     publishActiveCells();
 
-
-    time_monitor_.print();
-
     //! Compute metrics
     if(new_place_)
     {
@@ -154,6 +151,8 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
         }
     }
     metrics_.execution_time_ = time_monitor_.getDuration();
+
+    writeLog();
 
     publishExecutionTime();
 
@@ -348,7 +347,6 @@ void LocalViewModule::publishActiveCells(){
         msg.cell_id_.push_back(best_match_id_);
         msg.cell_rate_.push_back(cells_[best_match_id_].rate_);
 
-        log_file_rate_ << (ros::Time::now() - start_stamp_).toSec() << " " << best_match_id_ << " " << cells_[best_match_id_].rate_ << endl;
     }
     else if(parameters_.matching_algorithm_ == "correlation")
     {
@@ -361,10 +359,8 @@ void LocalViewModule::publishActiveCells(){
             {
                 msg.cell_id_.push_back(cell_iterator_->id_);
                 msg.cell_rate_.push_back(cell_iterator_->rate_);
-                log_file_rate_ << cell_iterator_->id_ << " " << cell_iterator_->rate_ << " " ;
             }
         }
-        log_file_rate_ << endl;
     }
     else
     {
