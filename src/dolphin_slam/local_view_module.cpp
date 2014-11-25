@@ -42,8 +42,6 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<double>("similarity_threshold",parameters_.similarity_threshold_,0.85);
 
-    private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
-
     private_nh.param<std::string>("matching_algorithm",parameters_.matching_algorithm_,"correlation");
 
     private_nh.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
@@ -345,14 +343,14 @@ void LocalViewModule::publishActiveCells(){
 
     msg.most_active_cell_ = best_match_id_;
 
-    if(parameters_.local_view_activation_ == "single")
+    if(parameters_.matching_algorithm_ == "fabmap")
     {
         msg.cell_id_.push_back(best_match_id_);
         msg.cell_rate_.push_back(cells_[best_match_id_].rate_);
 
         log_file_rate_ << (ros::Time::now() - start_stamp_).toSec() << " " << best_match_id_ << " " << cells_[best_match_id_].rate_ << endl;
     }
-    else if(parameters_.local_view_activation_ == "multiple")
+    else if(parameters_.matching_algorithm_ == "correlation")
     {
         log_file_rate_ << (ros::Time::now() - start_stamp_).toSec() << " ";
 
@@ -370,7 +368,7 @@ void LocalViewModule::publishActiveCells(){
     }
     else
     {
-        ROS_ERROR("Wrong local view cell activation. Use single or multiple");
+        ROS_ERROR_STREAM("Wrong matching algorithm: " << parameters_.matching_algorithm_);
     }
 
     active_cells_publisher_.publish(msg);

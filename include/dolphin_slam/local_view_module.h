@@ -34,7 +34,6 @@ namespace dolphin_slam
 struct LocalViewParameters
 {
     double similarity_threshold_;
-    std::string local_view_activation_;
     std::string matching_algorithm_;
     std::string bow_vocabulary_path_;
     std::string cltree_path_;

@@ -1,5 +1,5 @@
 similarity_threshold: 0.65
-local_view_activation: 'multiple'
+local_view_activation: 'single'
 matching_algorithm: 'fabmap'
 descriptors_topic: '/descriptors'
 bow_vocabulary_path: '/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies/bow_vocabulary.xml'
