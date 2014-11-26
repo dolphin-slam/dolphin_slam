@@ -1,3 +1,4 @@
 match_threshold: 0.3
 image_topic: '/uwsim/camera1'
 image_transport: 'raw'
+focal_lenght: 1501.2
