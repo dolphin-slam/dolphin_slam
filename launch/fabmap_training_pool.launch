@@ -1,0 +1,44 @@
+<launch>
+
+	<!-- Change ROS logger levels -->
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
+
+	<!-- Name of bag file -->
+	<arg name="bagfile" default="/mnt/Dados/Datasets/data5_2013-05-21-17-20-21_0.bag"/>
+
+	<!-- Vocabulary path -->
+	<arg name="vocabulary_path" value = "/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies"/>
+
+	<!-- Play messages from bagfile -->
+    <node name="play" pkg="rosbag" type="play" args="$(arg bagfile) -q -r 3" required="false"/>
+	
+	<!-- image pipeline -->
+    <node name="image_proc" pkg="image_proc" type="image_proc" required="true" ns="/stereo_camera/left">
+
+	<!-- process images to extract surf keypoints -->
+    <node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
+       	<param name="surf_threshold" type="int" value="100" />		
+		<param name="image_topic" type="string" value="/stereo_camera/left/image_rect_color" />		
+		<param name="image_transport" type="string" value="raw" />		
+		<param name="descriptors_topic" type="string" value="/descriptors" />		
+		<param name="keypoints_topic" type="string" value="/image_keypoints" />
+		<param name="frames_to_jump" type="int" value="5" />
+    </node>
+
+	<!-- view surf keypoints plotted on image  -->
+    <node name="keypoints_view" pkg="image_view" type="image_view" args="image:=/image_keypoints" respawn="false"/>
+
+	<!-- train fabmap algorithm  -->
+    <node name="fabmap_training" pkg="dolphin_slam" type="fabmap_training" required="true">
+		<param name="descriptors_topic" type="string" value="/descriptors" />		
+		<param name="bow_vocabulary_path" type="string" value="$(arg vocabulary_path)/bow_vocabulary.xml" />		
+		<param name="bow_descriptors_path" type="string" value="$(arg vocabulary_path)/bow_descriptors.xml" />		
+		<param name="cltree_path" type="string" value="$(arg vocabulary_path)/cltree.xml" />		
+       	<param name="cluster_size" type="double" value="0.4" />		
+    </node>
+
+	<!-- record topic messages on a bag file  -->
+    <node name="record" pkg="rosbag" type="record" args="\descriptors \image_keypoints -o fabmap_training" required="false"/>
+	
+</launch>
+
