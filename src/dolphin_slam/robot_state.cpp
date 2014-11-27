@@ -82,8 +82,6 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
 
     ros::Time stamp;
 
-    ROS_DEBUG_STREAM("DVL Velocity = [" << message->bi_x_axis << " " << message->bi_y_axis  << " " << message->bi_z_axis  << " ]" << "elapsed_time = " << elapsed_time);
-
     stamp = message->header.stamp;
     if(stamp.sec == 0){
         stamp = ros::Time::now();
@@ -125,6 +123,8 @@ void RobotState::dvlCallback(const underwater_sensor_msgs::DVLConstPtr &message)
     tf_broadcaster_.sendTransform(msg);
 
 
+    ROS_DEBUG_STREAM("DVL Velocity = [" << message->bi_x_axis << " " << message->bi_y_axis  << " " << message->bi_z_axis  << " ] " << "elapsed_time = " << elapsed_time);
+
 
 }
 
@@ -153,7 +153,7 @@ void RobotState::groundTruthCallback(const ros::TimerEvent &event)
 
     try
     {
-        msg = buffer_.lookupTransform("world", "girona500", ros::Time(0));
+        msg = buffer_.lookupTransform("world", parameters_.base_frame_, ros::Time(0));
 
     }
     catch (tf2::TransformException ex )

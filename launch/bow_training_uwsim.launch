@@ -28,7 +28,7 @@
 	<!-- train fabmap algorithm  -->
     <node pkg="dolphin_slam" type="bow_training" name="bow_training" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
-		<param name="bow_vocabulary" type="string" value="$(arg vocabulary_path)/bow_vocab.xml" />		
+		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)/bow_vocab.xml" />		
        	<param name="cluster_count" type="int" value="1000" />		
     </node>
 

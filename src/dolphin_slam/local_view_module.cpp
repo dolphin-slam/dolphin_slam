@@ -44,11 +44,13 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
-    private_nh.param<std::string>("bow_vocabulary_path",parameters_.bow_vocab_,"vocabulary.xml");
+    private_nh.param<std::string>("bow_vocab",parameters_.bow_vocab_,"vocabulary.xml");
 
-    private_nh.param<std::string>("cltree_path",parameters_.fabmap_tree_,"cltree.xml");
+    private_nh.param<std::string>("fabmap_vocab",parameters_.fabmap_vocab_,"vocabulary.xml");
 
-    private_nh.param<std::string>("bow_descriptors_path",parameters_.fabmap_descriptors_,"descriptors.xml");
+    private_nh.param<std::string>("fabmap_tree",parameters_.fabmap_tree_,"cltree.xml");
+
+    private_nh.param<std::string>("fabmap_descriptors",parameters_.fabmap_descriptors_,"descriptors.xml");
 
 }
 

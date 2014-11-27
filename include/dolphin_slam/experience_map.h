@@ -84,6 +84,7 @@ private:
 
     //! Callbacks
     void experienceEventCallback(const dolphin_slam::ExperienceEventConstPtr &event);
+    void imageCallback(const sensor_msgs::ImageConstPtr &image);
 
     void createROSMessageMap(visualization_msgs::Marker &message);
     void createROSMessageDeadReckoning(visualization_msgs::Marker &message);
@@ -159,7 +160,6 @@ private:
 
     cv::FlannBasedMatcher matcher_;
 
-    void imageCallback(const sensor_msgs::ImageConstPtr &image);
 
     tf2::Transform getImageTransform(cv::Mat &current_image, cv::Mat &image);
 };

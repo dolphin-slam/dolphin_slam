@@ -1,20 +1,45 @@
 <launch>
 
+	<!-- Change ROS logger levels -->
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
+
+	<!-- Name of bag file -->
+	<arg name="bagfile" default="$(find dolphin_slam)/experiments/pool/test/test.bag"/>
+
+	<!-- Vocabulary path -->
+	<arg name="vocabulary_path" value ="$(find dolphin_slam)/vocabularies"/>
 
     <param name="/use_sim_time" type="bool" value="true" />
 
-    <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag -q --clock" required="true"/>
-    
-    <node name="image_processing_node" pkg="dolphin_slam" type="image_processing_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/image_processing.yaml" />
+	<!-- Play messages from bagfile -->
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q" required="false"/>
+	
+	<!-- image pipeline -->
+    <node pkg="image_proc" type="image_proc" name="image_proc" required="true" ns="/stereo_camera/left"/>
+
+	<!-- process images to extract surf keypoints -->
+    <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
+       	<param name="surf_threshold" type="int" value="100" />		
+		<param name="image_topic" type="string" value="/stereo_camera/left/image_rect_color" />		
+		<param name="image_transport" type="string" value="raw" />		
+		<param name="descriptors_topic" type="string" value="/descriptors" />		
+		<param name="keypoints_topic" type="string" value="/image_keypoints" />
+		<param name="frames_to_jump" type="int" value="50" />
     </node>
 
-    <node name="local_view_node" pkg="dolphin_slam" type="local_view_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/local_view_cells.yaml" />
+	<!-- train fabmap algorithm  -->
+    <node pkg="dolphin_slam" type="local_view_node" name="local_view_node" required="true">
+		<param name="descriptors_topic" type="string" value="/descriptors" />
+		<param name="matching_algorithm" type="string" value="fabmap" />		
+		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)/fabmap_vocab.xml" />		
+		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)/fabmap_descriptors.xml"/>		
+		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)/fabmap_tree.xml" />
+		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)/bow_vocab.xml" />
+		<param name="similarity_threshold" type="double" value="0.65" />
     </node>
+
 
     <!-- Visualization tools -->
-   <node name="image_view" pkg="image_view" type="image_view" args="image:=/uwsim/camera1"  respawn="true"/>
+   <node name="image_view" pkg="image_view" type="image_view" args="image:=/stereo_camera/left/image_rect_color"  respawn="true"/>
 
 </launch>

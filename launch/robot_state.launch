@@ -2,7 +2,6 @@
 
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
 
-
     <param name="/use_sim_time" type="bool" value="true" />
 
     <node name="rosbag" pkg="rosbag" type="play" args="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag -q --clock" required="false"/>

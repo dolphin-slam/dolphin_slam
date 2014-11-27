@@ -235,6 +235,15 @@ void PlaceCellNetwork::localViewCallback(const ActiveLocalViewCellsConstPtr &mes
     //! atualiza a local view mais ativa no momento
     most_active_lv_cell_ = message->most_active_cell_;
 
+    lv_cells_active_.resize(message->cell_id_.size());
+    for(int i=0;i<message->cell_id_.size();i++)
+    {
+        lv_cells_active_[i].id_ = message->cell_id_[i];
+        lv_cells_active_[i].rate_= message->cell_rate_[i];
+        lv_cells_active_[i].active_= true;
+    }
+
+
     lv_cell_count_ = std::max(lv_cell_count_,most_active_lv_cell_);
 
     //! aloca novas posições na matriz de conexões caso ainda não existam

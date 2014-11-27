@@ -200,22 +200,22 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! set experience activation rate
     new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
-    //! set image
-    bool image_found = false;
-    for(int i=image_index_begin;i != image_index_end;i++)
-    {
-        //! look for same image seq
-        if(image_buffer[i].second == event->lv_cells_.image_seq_)
-        {
-            image_found= true;
-            new_experience->image_ = image_buffer[i].first;
-            image_index_begin = i+1;
-            break;
-        }
-    }
+//    //! set image
+//    bool image_found = false;
+//    for(int i=image_index_begin;i != image_index_end;i++)
+//    {
+//        //! look for same image seq
+//        if(image_buffer[i].second == event->lv_cells_.image_seq_)
+//        {
+//            image_found= true;
+//            new_experience->image_ = image_buffer[i].first;
+//            image_index_begin = i+1;
+//            break;
+//        }
+//    }
 
-    if(!image_found)
-        ROS_ERROR("Image not found on image_buffer");
+//    if(!image_found)
+//        ROS_ERROR("Image not found on image_buffer");
 
     //! set ground truth
     getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);

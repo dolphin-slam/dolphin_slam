@@ -9,7 +9,7 @@
 struct BoWTrainingParameters
 {
     std::string descriptors_topic_;
-    std::string bow_vocabulary_path_;
+    std::string bow_vocab_;
     int cluster_count_;
 };
 
