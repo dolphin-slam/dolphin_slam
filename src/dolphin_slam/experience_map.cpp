@@ -8,10 +8,10 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer(100), it_(node_handle_)
+ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer_(100), it_(node_handle_)
 {
-    image_index_begin = 0;
-    image_index_end = 0;
+    image_index_begin_ = 0;
+    image_index_end_ = 0;
 
     max_id_experience_ = 0;
     number_of_recognized_experiences_ = 0;
@@ -99,12 +99,12 @@ void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
     image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
     //! assign new image to the buffer
-    image_buffer[image_index_end] = std::make_pair(image_->image,image->header.seq);
+    image_buffer_[image_index_end_] = std::make_pair(image_->image,image->header.seq);
 
     //! increase index to last image
-    image_index_end = (image_index_end+1)%image_buffer.size();
+    image_index_end_ = (image_index_end_+1)%image_buffer_.size();
 
-    if(image_index_end == image_index_begin)
+    if(image_index_end_ == image_index_begin_)
     {
         ROS_ERROR("Image buffer is full");
     }
@@ -198,22 +198,22 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! set experience activation rate
     new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
-//    //! set image
-//    bool image_found = false;
-//    for(int i=image_index_begin;i != image_index_end;i++)
-//    {
-//        //! look for same image seq
-//        if(image_buffer[i].second == event->lv_cells_.image_seq_)
-//        {
-//            image_found= true;
-//            new_experience->image_ = image_buffer[i].first;
-//            image_index_begin = i+1;
-//            break;
-//        }
-//    }
+    //! set image
+    bool image_found = false;
+    for(int i=image_index_begin_;i != image_index_end_;i=(i+1)%image_buffer_.size())
+    {
+        //! look for same image seq
+        if(image_buffer_[i].second == event->lv_cells_.image_seq_)
+        {
+            image_found= true;
+            new_experience->image_ = image_buffer_[i].first;
+            image_index_begin_ = (i+1)%image_buffer_.size();
+            break;
+        }
+    }
 
-//    if(!image_found)
-//        ROS_ERROR("Image not found on image_buffer");
+    if(!image_found)
+        ROS_ERROR("Image not found on image_buffer");
 
     //! set ground truth
     getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);
@@ -370,7 +370,8 @@ void ExperienceMap::computeMatches()
 
         //! \todo
         //! compute transform between images
-        //image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+        image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+        ROS_DEBUG_STREAM("image_transform = " << image_transform.getOrigin().x() << " " << image_transform.getOrigin().y() << " " << image_transform.getOrigin().z() );
 
         //! create links between experiences
        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;

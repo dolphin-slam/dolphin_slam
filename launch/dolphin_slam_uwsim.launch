@@ -18,7 +18,7 @@
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
        	<param name="surf_threshold" type="int" value="100" />		
 		<param name="image_topic" type="string" value="/uwsim/camera1" />		
-		<param name="image_transport" type="string" value="raw" />		
+		<param name="image_transport" type="string" value="compressed" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
 		<param name="frames_to_jump" type="int" value="5" />
@@ -50,6 +50,6 @@
     <!-- Visualization tools -->
     <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
     <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="false"/>
-	<node name="image_view" pkg="image_view" type="image_view" args="image:=/uwsim/camera1"  respawn="true"/>
+	<node name="image_view" pkg="image_view" type="image_view" args="image:=/uwsim/camera1 compressed"  respawn="true"/>
 
 </launch>

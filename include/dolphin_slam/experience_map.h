@@ -154,9 +154,9 @@ private:
     image_transport::Subscriber image_subscriber_;
     cv::Ptr<cv::SIFT> sift_;
 
-    std::vector < std::pair<cv::Mat,int> > image_buffer; //! buffer to store image and image_seq
-    int image_index_begin;
-    int image_index_end;
+    std::vector < std::pair<cv::Mat,int> > image_buffer_; //! buffer to store image and image_seq
+    int image_index_begin_;
+    int image_index_end_;
 
     cv::FlannBasedMatcher matcher_;
 
