@@ -4,10 +4,10 @@
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
 
 	<!-- Name of bag file -->
-	<arg name="bagfile" default="/mnt/Dados/Dropbox/Mestrado/UWSim\ Cenarios/canos/2014-11-03-15-26-38_croped.bag"/>
+	<arg name="bagfile" default="$(find dolphin_slam)/experiments/uwsim/training/training.bag"/>
 
 	<!-- Vocabulary path -->
-	<arg name="vocabulary_path" value = "/home/lsilveira/Codigos/indigo_ws/src/dolphin_slam/vocabularies"/>
+	<arg name="vocabulary_path" value ="$(find dolphin_slam)/vocabularies"/>
 
 	<!-- Play messages from bagfile -->
     <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3" required="false"/>

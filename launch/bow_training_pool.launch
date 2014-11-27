@@ -7,7 +7,7 @@
 	<arg name="bagfile" default="$(find dolphin_slam)/experiments/pool/training/training.bag"/>
 
 	<!-- Vocabulary path -->
-	<arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/pool/training"/>
+	<arg name="vocabulary_path" value ="$(find dolphin_slam)/vocabularies"/>
 
 	<!-- Play messages from bagfile -->
     <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3" required="false"/>
@@ -22,19 +22,17 @@
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-		<param name="frames_to_jump" type="int" value="10" />
+		<param name="frames_to_jump" type="int" value="50" />
     </node>
 
 	<!-- view surf keypoints plotted on image  -->
     <node pkg="image_view" type="image_view" name="keypoints_view" args="image:=/image_keypoints" respawn="false"/>
 
 	<!-- train fabmap algorithm  -->
-    <node pkg="dolphin_slam" type="fabmap_training" name="fabmap_training" required="true">
+    <node pkg="dolphin_slam" type="bow_training" name="bow_training" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
-		<param name="bow_vocabulary_path" type="string" value="$(arg vocabulary_path)/fabmap_vocab.xml" />		
-		<param name="bow_descriptors_path" type="string" value="$(arg vocabulary_path)/fabmap_descriptors.xml"/>		
-		<param name="cltree_path" type="string" value="$(arg vocabulary_path)/fabmap_tree.xml" />		
-       	<param name="cluster_size" type="double" value="0.4" />		
+		<param name="bow_vocabulary_path" type="string" value="$(arg vocabulary_path)/bow_vocabulary.xml" />		
+       	<param name="cluster_count" type="int" value="1000" />		
     </node>
 
 	<!-- record topic messages on a bag file  -->
