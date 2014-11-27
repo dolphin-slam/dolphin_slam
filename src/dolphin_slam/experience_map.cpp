@@ -104,12 +104,10 @@ void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
     //! increase index to last image
     image_index_end = (image_index_end+1)%image_buffer.size();
 
-
     if(image_index_end == image_index_begin)
     {
         ROS_ERROR("Image buffer is full");
     }
-
 
 }
 
@@ -363,17 +361,22 @@ void ExperienceMap::computeMatches()
         }
     }
 
+
+
     //! create links between current experience and similar ones
     BOOST_FOREACH(ExperienceDescriptor exp, matches) {
+
+        ROS_DEBUG_STREAM("Experience match: " << map_[current_experience_descriptor_].id_ << " " << map_[exp].id_);
+
         //! \todo
         //! compute transform between images
-        image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+        //image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
 
         //! create links between experiences
-        link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
-        link_ptr = &map_[link_descriptor];
+       // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
+        //link_ptr = &map_[link_descriptor];
 
-        link_ptr->translation_ = translation;
+        //link_ptr->translation_ = translation;
     }
 }
 
@@ -390,7 +393,7 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     createExperience(event);
 
-    //computeMatches();
+    computeMatches();
 
     //iterateMap();
 
