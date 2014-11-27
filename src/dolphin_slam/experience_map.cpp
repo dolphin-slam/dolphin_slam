@@ -59,6 +59,9 @@ void ExperienceMap::loadParameters()
     //! string image_transport;
     private_nh_.param<std::string>("image_transport",parameters_.image_transport_,"raw");
 
+    //! double focal_length;
+    private_nh_.param<double>("focal_length",parameters_.focal_length_,1500.1);
+
 }
 
 void ExperienceMap::createROSSubscribers()
@@ -264,7 +267,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
  */
 tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &image)
 {
-    tf2::Transform transform;
+    geometry_msgs::Transform image_transform;
 
     //! Compute sift descriptors
     vector<cv::KeyPoint> keypoints_1, keypoints_2;
@@ -277,34 +280,63 @@ tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &
     sift_->compute(image, keypoints_2, descriptors_2);
 
     //! Compute descriptors matches
-    cv::FlannBasedMatcher matcher;
     std::vector< cv::DMatch > matches;
-    matcher.match(descriptors_1, descriptors_2, matches);
+    matcher_.match(descriptors_1, descriptors_2, matches);
 
-    //! Receiving only good matches
-    std::vector< cv::DMatch > good_matches;
+   // //! Receiving only good matches
+    //std::vector< cv::DMatch > good_matches;
 
-    double min_dist = 100;
-    for( int i = 0; i < descriptors_1.rows; i++ )
-    {
-        if( matches[i].distance <= std::max(2*min_dist, 0.02) )
-        {
-            good_matches.push_back( matches[i]);
-        }
-    }
-
+//    double min_dist = 100;
+//    for( int i = 0; i < descriptors_1.rows; i++ )
+//    {
+//        if( matches[i].distance <= std::max(2*min_dist, 0.02) )
+//        {
+//            good_matches.push_back( matches[i]);
+//        }
+//    }
 
     std::vector< cv::Point2f > scene_1;
     std::vector< cv::Point2f > scene_2;
-    for( int i = 0; i < good_matches.size(); i++ )
+    for( int i = 0; i < keypoints_1.size(); i++ )
     {
         //-- Get the keypoints from the good matches
-        scene_1.push_back( keypoints_1[ good_matches[i].queryIdx ].pt );
-        scene_2.push_back( keypoints_2[ good_matches[i].trainIdx ].pt );
+        scene_1.push_back( keypoints_1[i].pt );
+        scene_2.push_back( keypoints_2[i].pt );
     }
 
     //! Finding homography with RANSAC
     cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
+
+    //! Finding the image center
+    int image_center_x = current_image.cols / 2;
+    int image_center_y = current_image.rows / 2;
+
+    //! Getting the center in the other image
+    cv::Mat image_center(1, 3, CV_32F);
+    image_center.at<float>(0, 0) = image_center_x;
+    image_center.at<float>(0, 1) = image_center_y;
+    image_center.at<float>(0, 2) = 1;
+
+    //! Finding field of view angle
+    float field_of_view_angle_x = 2*atan(0.5*current_image.cols / parameters_.focal_length_);
+    float field_of_view_angle_y = 2*atan(0.5*current_image.rows / parameters_.focal_length_);
+
+    //! \todo: get the height now
+    float field_of_view_x = tan(field_of_view_angle_x) * current_image.cols;
+    float field_of_view_y = tan(field_of_view_angle_y) * current_image.rows;
+
+    //! Compute how much a pixel affect the image
+    float pixel_value_x = field_of_view_x / current_image.cols;
+    float pixel_value_y = field_of_view_y / current_image.rows;
+
+    cv::Mat point = image_center * H;
+    image_transform.translation.x = (point.at<float>(0,0) / point.at<float>(0,2)) * pixel_value_x;
+    image_transform.translation.y = (point.at<float>(0,1) / point.at<float>(0,2)) * pixel_value_y;
+    image_transform.translation.z = 0;
+
+    tf2::Vector3 translation(image_transform.translation.x,image_transform.translation.y,image_transform.translation.z);
+    tf2::Quaternion quaternion(0,0,0,1);
+    tf2::Transform transform(quaternion,translation);
 
     return transform;
 }

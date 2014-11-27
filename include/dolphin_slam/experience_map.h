@@ -49,6 +49,7 @@ struct ExperienceMapParameters
     std::string image_topic_;
     std::string image_transport_;
     double match_threshold_;
+    double focal_length_;
 };
 
 class ExperienceMap
@@ -156,7 +157,7 @@ private:
     int image_index_begin;
     int image_index_end;
 
-
+    cv::FlannBasedMatcher matcher_;
 
     void imageCallback(const sensor_msgs::ImageConstPtr &image);
 
