@@ -28,9 +28,9 @@
 	<!-- train fabmap algorithm  -->
     <node pkg="dolphin_slam" type="fabmap_training" name="fabmap_training" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
-		<param name="bow_vocabulary_path" type="string" value="$(arg vocabulary_path)/bow_vocabulary.xml" />		
-		<param name="bow_descriptors_path" type="string" value="$(arg vocabulary_path)/bow_descriptors.xml" />		
-		<param name="cltree_path" type="string" value="$(arg vocabulary_path)/cltree.xml" />		
+		<param name="fabmap_vocabulary" type="string" value="$(arg vocabulary_path)/fabmap_vocab.xml" />		
+		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)/fabmap_descriptors.xml"/>		
+		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)/fabmap_tree.xml" />		
        	<param name="cluster_size" type="double" value="0.4" />		
     </node>
 

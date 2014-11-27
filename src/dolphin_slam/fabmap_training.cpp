@@ -27,11 +27,11 @@ void FabmapTraining::loadParameters()
 
     private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
-    private_nh_.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
+    private_nh_.param<std::string>("fabmap_vocab",parameters_.fabmap_vocab_,"vocabulary.xml");
 
-    private_nh_.param<std::string>("cltree_path",parameters_.cltree_path_,"cltree.xml");
+    private_nh_.param<std::string>("fabmap_tree",parameters_.fabmap_tree_,"cltree.xml");
 
-    private_nh_.param<std::string>("bow_descriptors_path",parameters_.bow_descriptors_path_,"descriptors.xml");
+    private_nh_.param<std::string>("fabmap_descriptors",parameters_.fabmap_descriptors_,"descriptors.xml");
 
     private_nh_.param<double>("cluster_size",parameters_.cluster_size_,0.4);
 }
@@ -117,16 +117,16 @@ void FabmapTraining::storeTrainingData()
 
     cv::FileStorage fs;
 
-    fs.open(parameters_.bow_vocabulary_path_,cv::FileStorage::WRITE);
+    fs.open(parameters_.fabmap_vocab_,cv::FileStorage::WRITE);
     fs << "vocabulary" << bow_vocabulary_;
     fs.release();
 
-    fs.open(parameters_.cltree_path_,cv::FileStorage::WRITE);
+    fs.open(parameters_.fabmap_tree_,cv::FileStorage::WRITE);
     fs << "tree" << cl_tree_;
     fs.release();
 
     //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
-    fs.open(parameters_.bow_descriptors_path_,cv::FileStorage::WRITE);
+    fs.open(parameters_.fabmap_descriptors_,cv::FileStorage::WRITE);
     cv::Mat_ <float>descriptors;
     convert(bow_descriptors_,descriptors);
     fs << "descriptors" << descriptors;

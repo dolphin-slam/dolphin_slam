@@ -35,9 +35,10 @@ struct LocalViewParameters
 {
     double similarity_threshold_;
     std::string matching_algorithm_;
-    std::string bow_vocabulary_path_;
-    std::string cltree_path_;
-    std::string bow_descriptors_path_;
+    std::string bow_vocab_;
+    std::string fabmap_vocab_;
+    std::string fabmap_tree_;
+    std::string fabmap_descriptors_;
     std::string descriptors_topic_;
 };
 

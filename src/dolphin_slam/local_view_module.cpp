@@ -44,11 +44,11 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
-    private_nh.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
+    private_nh.param<std::string>("bow_vocabulary_path",parameters_.bow_vocab_,"vocabulary.xml");
 
-    private_nh.param<std::string>("cltree_path",parameters_.cltree_path_,"cltree.xml");
+    private_nh.param<std::string>("cltree_path",parameters_.fabmap_tree_,"cltree.xml");
 
-    private_nh.param<std::string>("bow_descriptors_path",parameters_.bow_descriptors_path_,"descriptors.xml");
+    private_nh.param<std::string>("bow_descriptors_path",parameters_.fabmap_descriptors_,"descriptors.xml");
 
 }
 
@@ -69,26 +69,44 @@ void LocalViewModule::init()
 {
     cv::FileStorage fs;
 
-    fs.open(parameters_.bow_vocabulary_path_,cv::FileStorage::READ);
-    fs["vocabulary"] >> bow_vocabulary_;
-    fs.release();
+    if(parameters_.matching_algorithm_ == "fabmap")
+    {
+        fs.open(parameters_.fabmap_vocab_,cv::FileStorage::READ);
+        fs["vocabulary"] >> bow_vocabulary_;
+        fs.release();
 
-    fs.open(parameters_.cltree_path_,cv::FileStorage::READ);
-    fs["tree"] >> cltree_;
-    fs.release();
+        fs.open(parameters_.fabmap_tree_,cv::FileStorage::READ);
+        fs["tree"] >> cltree_;
+        fs.release();
 
-    //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
-    fs.open(parameters_.bow_descriptors_path_,cv::FileStorage::READ);
-    fs["descriptors"] >> bow_training_descriptors_;
-    fs.release();
+        //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
+        fs.open(parameters_.fabmap_descriptors_,cv::FileStorage::READ);
+        fs["descriptors"] >> bow_training_descriptors_;
+        fs.release();
 
 
-    bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
-    bow_extractor_->setVocabulary(bow_vocabulary_);
+        bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
+        bow_extractor_->setVocabulary(bow_vocabulary_);
 
-    fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU,bow_training_descriptors_.rows);
+        fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU,bow_training_descriptors_.rows);
 
-    fabmap_->addTraining(bow_training_descriptors_);
+        fabmap_->addTraining(bow_training_descriptors_);
+
+    }
+    else if (parameters_.matching_algorithm_== "correlation")
+    {
+        fs.open(parameters_.bow_vocab_,cv::FileStorage::READ);
+        fs["vocabulary"] >> bow_vocabulary_;
+        fs.release();
+
+        bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
+        bow_extractor_->setVocabulary(bow_vocabulary_);
+
+    }
+    else
+    {
+        ROS_ERROR("Invalid matching algorithm");
+    }
 
     //! Estudar se tem mais coisas a adicionar na inicialização
     //! colocar os parametros de entrada do fabmap como parametros do ros.

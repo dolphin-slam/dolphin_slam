@@ -11,11 +11,11 @@ namespace dolphin_slam
 
 struct FabmapTrainingParameters
 {
-    std::string bow_descriptors_path_;
-    std::string cltree_path_;
+    std::string fabmap_descriptors_;
+    std::string fabmap_tree_;
     double cluster_size_;
     std::string descriptors_topic_;
-    std::string bow_vocabulary_path_;
+    std::string fabmap_vocab_;
 };
 
 class FabmapTraining

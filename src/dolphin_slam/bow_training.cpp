@@ -21,7 +21,7 @@ void BoWTraining::loadParameters()
 
     private_nh_.param<std::string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
 
-    private_nh_.param<std::string>("bow_vocabulary_path",parameters_.bow_vocabulary_path_,"vocabulary.xml");
+    private_nh_.param<std::string>("bow_vocab",parameters_.bow_vocab_,"vocabulary.xml");
 
     private_nh_.param<int>("cluster_count",parameters_.cluster_count_,100);
 }
@@ -82,7 +82,7 @@ void BoWTraining::storeTrainingData()
 
     cv::FileStorage fs;
 
-    fs.open(parameters_.bow_vocabulary_path_,cv::FileStorage::WRITE);
+    fs.open(parameters_.bow_vocab_,cv::FileStorage::WRITE);
     fs << "vocabulary" << bow_vocabulary_;
     fs.release();
 
