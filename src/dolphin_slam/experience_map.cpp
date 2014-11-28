@@ -281,26 +281,27 @@ tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &
     std::vector< cv::DMatch > matches;
     matcher_.match(descriptors_1, descriptors_2, matches);
 
-   // //! Receiving only good matches
-    //std::vector< cv::DMatch > good_matches;
+    //! Receiving only good matches
+    std::vector< cv::DMatch > good_matches;
 
-//    double min_dist = 100;
-//    for( int i = 0; i < descriptors_1.rows; i++ )
-//    {
-//        if( matches[i].distance <= std::max(2*min_dist, 0.02) )
-//        {
-//            good_matches.push_back( matches[i]);
-//        }
-//    }
+    int min_dist = 100;
+    for (int i = 0; i < matches.size(); ++i)
+    {
+        if (matches[i].distance < 2*min_dist)
+        {
+            good_matches.push_back(matches[i]);
+        }
+    }
 
     std::vector< cv::Point2f > scene_1;
     std::vector< cv::Point2f > scene_2;
     for( int i = 0; i < keypoints_1.size(); i++ )
     {
         //-- Get the keypoints from the good matches
-        scene_1.push_back( keypoints_1[i].pt );
-        scene_2.push_back( keypoints_2[i].pt );
+        scene_1.push_back( keypoints_1[good_matches[i].queryIdx].pt );
+        scene_2.push_back( keypoints_2[good_matches[i].trainIdx].pt );
     }
+
 
     //! Finding homography with RANSAC
     cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
