@@ -134,6 +134,7 @@ private:
     ros::Subscriber experience_event_subscriber_;
 
 
+
     //! Transformation Frames Library
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
@@ -152,6 +153,7 @@ private:
 
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_subscriber_;
+    image_transport::Publisher image_publisher_;
     cv::Ptr<cv::SIFT> sift_;
 
     std::vector < std::pair<cv::Mat,int> > image_buffer_; //! buffer to store image and image_seq
@@ -161,7 +163,7 @@ private:
     cv::FlannBasedMatcher matcher_;
 
 
-    tf2::Transform getImageTransform(cv::Mat &current_image, cv::Mat &image);
+    tf2::Vector3 getImageTransform(cv::Mat &current_image, cv::Mat &image);
 };
 
 }  //namespace

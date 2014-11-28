@@ -8,7 +8,7 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer_(100), it_(node_handle_)
+ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer_(1000), it_(node_handle_)
 {
     image_index_begin_ = 0;
     image_index_end_ = 0;
@@ -72,7 +72,7 @@ void ExperienceMap::createROSSubscribers()
     image_transport::TransportHints hints(parameters_.image_transport_,ros::TransportHints(),node_handle_);
 
     //! image subscription
-    image_subscriber_ = it_.subscribe(parameters_.image_topic_,1,&ExperienceMap::imageCallback,this,hints);
+    image_subscriber_ = it_.subscribe(parameters_.image_topic_,100,&ExperienceMap::imageCallback,this,hints);
 
 }
 
@@ -87,6 +87,9 @@ void ExperienceMap::createROSPublishers()
     execution_time_publisher_ = node_handle_.advertise<dolphin_slam::ExecutionTime>("execution_time",1,false);
 
     error_publisher_ = node_handle_.advertise<dolphin_slam::Error>("error",1,false);
+
+    image_publisher_ = it_.advertise("experience_image", 1);
+
 }
 
 void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
@@ -99,7 +102,9 @@ void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
     image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
     //! assign new image to the buffer
-    image_buffer_[image_index_end_] = std::make_pair(image_->image,image->header.seq);
+    image_buffer_[image_index_end_].first = image_->image;
+    image_buffer_[image_index_end_].second = image_->header.seq;
+
 
     //! increase index to last image
     image_index_end_ = (image_index_end_+1)%image_buffer_.size();
@@ -182,6 +187,8 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     LinkDescriptor new_link_descriptor;
     tf2::Vector3 translation;
 
+    cv_bridge::CvImage cv_image;
+
     //! add a new experience
     new_experience_descriptor = boost::add_vertex(map_);
     new_experience = &map_[new_experience_descriptor];
@@ -254,6 +261,11 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     current_experience_descriptor_ = new_experience_descriptor;
 
 
+    cv_image.image = new_experience->image_;
+    cv_image.header.stamp = ros::Time::now();
+    cv_image.encoding = sensor_msgs::image_encodings::MONO8;
+    image_publisher_.publish(cv_image.toImageMsg());
+
 }
 
 /**
@@ -263,9 +275,9 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
  * @param image Captured image on match experience
  * @return tf2::Transform relative transform to compute position of image in current_image frame
  */
-tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &image)
+tf2::Vector3 ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &image)
 {
-    geometry_msgs::Transform image_transform;
+    tf2::Vector3 image_translation;
 
     //! Compute sift descriptors
     vector<cv::KeyPoint> keypoints_1, keypoints_2;
@@ -277,69 +289,63 @@ tf2::Transform ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &
     sift_->compute(current_image, keypoints_1, descriptors_1);
     sift_->compute(image, keypoints_2, descriptors_2);
 
-    //! Compute descriptors matches
-    std::vector< cv::DMatch > matches;
-    matcher_.match(descriptors_1, descriptors_2, matches);
+//    //! Compute descriptors matches
+//    std::vector< cv::DMatch > matches;
+//    matcher_.match(descriptors_1, descriptors_2, matches);
 
-    //! Receiving only good matches
-    std::vector< cv::DMatch > good_matches;
+//    //! Receiving only good matches
+//    std::vector< cv::DMatch > good_matches;
 
-    int min_dist = 100;
-    for (int i = 0; i < matches.size(); ++i)
-    {
-        if (matches[i].distance < 2*min_dist)
-        {
-            good_matches.push_back(matches[i]);
-        }
-    }
+//    int min_dist = 100;
+//    for (int i = 0; i < matches.size(); ++i)
+//    {
+//        if (matches[i].distance < 2*min_dist)
+//        {
+//            good_matches.push_back(matches[i]);
+//        }
+//    }
 
-    std::vector< cv::Point2f > scene_1;
-    std::vector< cv::Point2f > scene_2;
-    for( int i = 0; i < keypoints_1.size(); i++ )
-    {
-        //-- Get the keypoints from the good matches
-        scene_1.push_back( keypoints_1[good_matches[i].queryIdx].pt );
-        scene_2.push_back( keypoints_2[good_matches[i].trainIdx].pt );
-    }
+//    std::vector< cv::Point2f > scene_1;
+//    std::vector< cv::Point2f > scene_2;
+//    for( int i = 0; i < keypoints_1.size(); i++ )
+//    {
+//        //-- Get the keypoints from the good matches
+//        scene_1.push_back( keypoints_1[good_matches[i].queryIdx].pt );
+//        scene_2.push_back( keypoints_2[good_matches[i].trainIdx].pt );
+//    }
 
 
-    //! Finding homography with RANSAC
-    cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
+//    //! Finding homography with RANSAC
+//    cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
 
-    //! Finding the image center
-    int image_center_x = current_image.cols / 2;
-    int image_center_y = current_image.rows / 2;
+//    //! Finding the image center
+//    int image_center_x = current_image.cols / 2;
+//    int image_center_y = current_image.rows / 2;
 
-    //! Getting the center in the other image
-    cv::Mat image_center(1, 3, CV_32F);
-    image_center.at<float>(0, 0) = image_center_x;
-    image_center.at<float>(0, 1) = image_center_y;
-    image_center.at<float>(0, 2) = 1;
+//    //! Getting the center in the other image
+//    cv::Mat image_center(1, 3, CV_32F);
+//    image_center.at<float>(0, 0) = image_center_x;
+//    image_center.at<float>(0, 1) = image_center_y;
+//    image_center.at<float>(0, 2) = 1;
 
-    //! Finding field of view angle
-    float field_of_view_angle_x = 2*atan(0.5*current_image.cols / parameters_.focal_length_);
-    float field_of_view_angle_y = 2*atan(0.5*current_image.rows / parameters_.focal_length_);
+//    //! Finding field of view angle
+//    float field_of_view_angle_x = 2*atan(0.5*current_image.cols / parameters_.focal_length_);
+//    float field_of_view_angle_y = 2*atan(0.5*current_image.rows / parameters_.focal_length_);
 
-    //! \todo: get the height now
-    float field_of_view_x = tan(field_of_view_angle_x) * current_image.cols;
-    float field_of_view_y = tan(field_of_view_angle_y) * current_image.rows;
+//    //! \todo: get the height now
+//    float field_of_view_x = tan(field_of_view_angle_x) * current_image.cols;
+//    float field_of_view_y = tan(field_of_view_angle_y) * current_image.rows;
 
-    //! Compute how much a pixel affect the image
-    float pixel_value_x = field_of_view_x / current_image.cols;
-    float pixel_value_y = field_of_view_y / current_image.rows;
+//    //! Compute how much a pixel affect the image
+//    float pixel_value_x = field_of_view_x / current_image.cols;
+//    float pixel_value_y = field_of_view_y / current_image.rows;
 
-    cv::Mat point = image_center * H;
-    image_transform.translation.x = (point.at<float>(0,0) / point.at<float>(0,2)) * pixel_value_x;
-    image_transform.translation.y = (point.at<float>(0,1) / point.at<float>(0,2)) * pixel_value_y;
-    image_transform.translation.z = 0;
+//    cv::Mat point = image_center * H;
 
-    tf2::Vector3 translation(image_transform.translation.x,image_transform.translation.y,image_transform.translation.z);
-    tf2::Quaternion quaternion(0,0,0,1);
-    tf2::Transform transform(quaternion,translation);
+//    image_translation.setValue((point.at<float>(0,0) / point.at<float>(0,2)) * pixel_value_x,(point.at<float>(0,1)/point.at<float>(0,2))* pixel_value_y,0);
 
-    return transform;
+    return image_translation;
 }
-
 
 //! compute matches between new experience(current_experience_descriptor) and all other experiences
 void ExperienceMap::computeMatches()
@@ -348,8 +354,7 @@ void ExperienceMap::computeMatches()
     LinkDescriptor link_descriptor;
     Link * link_ptr;
     double similarity;
-    tf2::Vector3 translation;
-    tf2::Transform image_transform;
+    tf2::Vector3 image_translation;
 
     BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
         if(exp != current_experience_descriptor_)
@@ -371,8 +376,8 @@ void ExperienceMap::computeMatches()
 
         //! \todo
         //! compute transform between images
-        image_transform = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
-        ROS_DEBUG_STREAM("image_transform = " << image_transform.getOrigin().x() << " " << image_transform.getOrigin().y() << " " << image_transform.getOrigin().z() );
+        image_translation = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+        ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
 
         //! create links between experiences
        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
