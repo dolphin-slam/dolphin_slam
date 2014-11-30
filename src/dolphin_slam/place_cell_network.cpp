@@ -44,9 +44,13 @@ void PlaceCellNetwork::loadParameters()
 {
     ros::NodeHandle private_nh("~");
 
-    private_nh.getParam("number_of_neurons",parameters_.number_of_neurons_);
+    double neurons_per_dimension;
+    private_nh.param<double>("neurons_per_dimension",neurons_per_dimension,10);
+    parameters_.number_of_neurons_.resize(DIMS,neurons_per_dimension);
 
-    private_nh.getParam("distance_between_neurons",parameters_.distance_between_neurons_);
+    double neurons_step;
+    private_nh.param<double>("neurons_step",neurons_step,0.25);
+    parameters_.neurons_step_.resize(DIMS,neurons_step);
 
     private_nh.param<double>("recurrent_connection_std",parameters_.recurrent_connection_std_,2);
 
@@ -499,7 +503,7 @@ float PlaceCellNetwork::calculateMaxDistance()
 
     for(int i=0;i<DIMS;i++)
     {
-        distance += pow(parameters_.distance_between_neurons_[i],2);
+        distance += pow(parameters_.neurons_step_[i],2);
     }
     return sqrt(distance);
 }
@@ -520,7 +524,7 @@ void PlaceCellNetwork::integrateX(double delta)
 
 
     //! calcula o numero de celulas para deslocar e a direção do deslocamento
-    num_cells = delta/parameters_.distance_between_neurons_[0];
+    num_cells = delta/parameters_.neurons_step_[0];
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
@@ -581,7 +585,7 @@ void PlaceCellNetwork::integrateY(double delta)
 
 
     //! calcula o numero de celulas para deslocar e a direção do deslocamento
-    num_cells = delta/parameters_.distance_between_neurons_[1];
+    num_cells = delta/parameters_.neurons_step_[1];
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));
@@ -641,7 +645,7 @@ void PlaceCellNetwork::integrateZ(double  delta)
     std::fill(aux_neurons_.begin(),aux_neurons_.end(),0.0f);
 
     //! calcula o numero de celulas para deslocar e a direção do deslocamento
-    num_cells = delta/parameters_.distance_between_neurons_[2];
+    num_cells = delta/parameters_.neurons_step_[2];
 
     //! split the number into integer and decimal part
     decimal_cells = fabs(boost::math::modf(num_cells,&integer_cells));

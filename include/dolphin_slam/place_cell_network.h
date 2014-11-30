@@ -47,7 +47,7 @@ namespace dolphin_slam
 struct PlaceCellParameters
 {
     std::vector<int> number_of_neurons_;
-    std::vector<double> distance_between_neurons_;
+    std::vector<double> neurons_step_;
     double input_learning_rate_;
 
     double recurrent_connection_std_;

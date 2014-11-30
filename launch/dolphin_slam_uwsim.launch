@@ -36,15 +36,30 @@
     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/robot_state.yaml" />
+		<param name="dvl_topic" type="string" value="/g500/dvl" />
+		<param name="imu_topic" type="string" value="/g500/imu" />
+		<param name="base_frame" type="string" value="girona500" />
+		<param name="dvl_position/x" type="double" value="-0.75" />
+		<param name="dvl_position/y" type="double" value="0" />
+		<param name="dvl_position/z" type="double" value="0" />
+		<param name="dvl_orientation/r" type="double" value="0" />
+		<param name="dvl_orientation/p" type="double" value="0" />
+		<param name="dvl_orientation/y" type="double" value="-2.356"/>
     </node>
 
     <node name="place_cell_node" pkg="dolphin_slam" type="place_cell_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/place_cells.yaml" />
+		<param name="neurons_per_dimension" type="int" value="10"/>	
+		<param name="neurons_step" type="double" value="0.25" />
+		<param name="recurrent_connection_std" type="int" value="3" />
+		<param name="input_learning_rate" type="double" value="0.75" />
+		<param name="min_input_age" type="int" value="5" />
+		<param name="local_view_activation" type="string" value="single" />
+		<param name="weight_function" type="string" value="mexican_hat" />
     </node>
 
     <node name="experience_map_node" pkg="dolphin_slam" type="experience_map_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/experience_map.yaml" />
+		<param name="match_threshold" type="double" value="0.75" />
+		<param name="focal_lenght" type="double" value="1501.2" />
     </node>
 
     <!-- Visualization tools -->

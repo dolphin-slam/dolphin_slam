@@ -42,9 +42,12 @@ void RobotState::loadParameters()
 
     private_nh.param<std::string>("base_frame", parameters_.base_frame_, "girona500");
 
-    private_nh.getParam("dvl_position",parameters_.dvl_position_);
-    private_nh.getParam("dvl_orientation",parameters_.dvl_orientation_);
-
+    private_nh.param<double>("dvl_position/x",parameters_.dvl_position_[0],0);
+    private_nh.param<double>("dvl_position/y",parameters_.dvl_position_[1],0);
+    private_nh.param<double>("dvl_position/z",parameters_.dvl_position_[2],0);
+    private_nh.param<double>("dvl_orientation/r",parameters_.dvl_orientation_[0],0);
+    private_nh.param<double>("dvl_orientation/p",parameters_.dvl_orientation_[1],0);
+    private_nh.param<double>("dvl_orientation/y",parameters_.dvl_orientation_[2],0);
 }
 
 void RobotState::createROSSubscribers()

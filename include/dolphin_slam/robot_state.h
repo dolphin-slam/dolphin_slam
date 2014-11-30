@@ -29,7 +29,6 @@ struct RobotStateParameters
     std::string base_frame_;
     std::vector<double> dvl_position_;
     std::vector<double> dvl_orientation_;
-
 };
 
 //! \todo Mudar a interface para um tf, possivelmente
