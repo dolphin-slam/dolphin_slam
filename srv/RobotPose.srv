@@ -1,4 +1,0 @@
-bool reset
----
-geometry_msgs/Point traveled_distance_
-geometry_msgs/Point ground_truth_

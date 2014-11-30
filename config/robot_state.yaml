@@ -3,5 +3,9 @@ imu_topic: '/g500/imu'
 base_frame: 'girona500'
 
 dvl_position: [-0.75, 0, 0]
+
 dvl_orientation: [0, 0, -2.356]
+
+# girona rotated
+#dvl_orientation: [0, 0, 0]
 

@@ -14,8 +14,11 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <queue>
 
 #include <dolphin_slam/Descriptors.h>
+#include <dolphin_slam/ImageRequest.h>
+
 
 using namespace std;
 
@@ -49,11 +52,13 @@ public:
     ~ImageProcessing();
 
     void imageCallback(const sensor_msgs::ImageConstPtr &image);
+    bool imageRequest(ImageRequest::Request &req, ImageRequest::Response &res);
 
     void loadParameters();
 
     void createROSSubscribers();
     void createROSPublishers();
+    void createROSServices();
 
     void publishImageKeypoints();
     void publishDescriptors();
@@ -76,8 +81,12 @@ private:
     image_transport::Publisher image_publisher_;
     image_transport::Subscriber image_subscriber_;
 
+    ros::ServiceServer image_service;
+
     cv::Mat descriptors_;
     std::vector<cv::KeyPoint> keypoints_;
+
+    std::queue < std::pair<int,cv::Mat> > image_buffer_;
 
     cv_bridge::CvImageConstPtr image_;
 

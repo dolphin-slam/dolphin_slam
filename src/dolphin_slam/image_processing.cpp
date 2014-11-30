@@ -65,10 +65,15 @@ void ImageProcessing::createROSSubscribers()
 void ImageProcessing::createROSPublishers()
 {
 
-   image_publisher_ = it_.advertise(parameters_.image_keypoints_topic_, 1);
+    image_publisher_ = it_.advertise(parameters_.image_keypoints_topic_, 1);
 
-   descriptors_publisher_ = node_handle_.advertise<dolphin_slam::Descriptors>(parameters_.descriptors_topic_, 100);
+    descriptors_publisher_ = node_handle_.advertise<dolphin_slam::Descriptors>(parameters_.descriptors_topic_, 100);
 
+}
+
+void ImageProcessing::createROSServices()
+{
+    image_service = node_handle_.advertiseService("image_request",&ImageProcessing::imageRequest,this);
 }
 
 
@@ -132,6 +137,8 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 
         ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
+        image_buffer_.push(make_pair(image->header.seq,image_->image));
+
         publishDescriptors();
 
         publishImageKeypoints();
@@ -140,8 +147,29 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 
     if(parameters_.frames_to_jump_)
         count = (count + 1)%parameters_.frames_to_jump_;
+}
 
+bool ImageProcessing::imageRequest(dolphin_slam::ImageRequest::Request  &req,
+                                   dolphin_slam::ImageRequest::Response &res)
+{
 
+    cv_bridge::CvImage image_response;
+    std::pair <int,cv::Mat> next_element;
+
+    while(!image_buffer_.empty())
+    {
+        next_element = image_buffer_.front();
+        image_buffer_.pop();
+        if(next_element.first == req.seq)
+        {
+            image_response.header.seq = req.seq;
+            image_response.encoding = sensor_msgs::image_encodings::BGR8;
+            image_response.image = next_element.second;
+            image_response.toImageMsg(res.image);
+        }
+    }
+
+    return true;
 }
 
 } //dolphin_slam

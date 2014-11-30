@@ -33,6 +33,7 @@
 #include <dolphin_slam/ExperienceEvent.h>
 #include <dolphin_slam/Error.h>
 #include <dolphin_slam/ExecutionTime.h>
+#include <dolphin_slam/ImageRequest.h>
 
 #include <angles/angles.h>
 
@@ -61,6 +62,7 @@ public:
     void loadParameters();
     void createROSSubscribers();
     void createROSPublishers();
+    void createROSServices();
 
     void storeMaps();
 
@@ -70,6 +72,8 @@ private:
     void createExperience(const ExperienceEventConstPtr &event);
 
     void computeMatches();
+
+    void getImage(cv::Mat &image, int seq);
 
     void getGroundTruth(tf2::Transform & gt_pose, ros::Time stamp);
 
@@ -84,7 +88,6 @@ private:
 
     //! Callbacks
     void experienceEventCallback(const dolphin_slam::ExperienceEventConstPtr &event);
-    void imageCallback(const sensor_msgs::ImageConstPtr &image);
 
     void createROSMessageMap(visualization_msgs::Marker &message);
     void createROSMessageDeadReckoning(visualization_msgs::Marker &message);
@@ -99,6 +102,7 @@ private:
 
     void publishTfDeadReckoning();
     void publishTFPoses();
+
 
     ExperienceMapParameters parameters_;
 
@@ -133,7 +137,7 @@ private:
     ros::Publisher execution_time_publisher_;
     ros::Subscriber experience_event_subscriber_;
 
-
+    ros::ServiceClient image_client_;
 
     //! Transformation Frames Library
     tf2_ros::Buffer tf_buffer_;
@@ -152,11 +156,9 @@ private:
 
 
     image_transport::ImageTransport it_;
-    image_transport::Subscriber image_subscriber_;
     image_transport::Publisher image_publisher_;
     cv::Ptr<cv::SIFT> sift_;
 
-    std::vector < std::pair<cv::Mat,int> > image_buffer_; //! buffer to store image and image_seq
     int image_index_begin_;
     int image_index_end_;
 

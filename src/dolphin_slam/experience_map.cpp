@@ -8,7 +8,7 @@ namespace dolphin_slam
 /*!
  * \brief Constructor
  */
-ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), image_buffer_(1000), it_(node_handle_)
+ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), it_(node_handle_)
 {
     image_index_begin_ = 0;
     image_index_end_ = 0;
@@ -68,12 +68,6 @@ void ExperienceMap::createROSSubscribers()
 {
     experience_event_subscriber_ = node_handle_.subscribe("experience_event",1000,&ExperienceMap::experienceEventCallback,this);
 
-    //! hint to modify the image_transport. Here I use raw transport
-    image_transport::TransportHints hints(parameters_.image_transport_,ros::TransportHints(),node_handle_);
-
-    //! image subscription
-    image_subscriber_ = it_.subscribe(parameters_.image_topic_,100,&ExperienceMap::imageCallback,this,hints);
-
 }
 
 void ExperienceMap::createROSPublishers()
@@ -92,28 +86,9 @@ void ExperienceMap::createROSPublishers()
 
 }
 
-void ExperienceMap::imageCallback(const sensor_msgs::ImageConstPtr &image)
+void ExperienceMap::createROSServices()
 {
-    static cv_bridge::CvImageConstPtr image_;
-
-    ROS_DEBUG_STREAM("Image received on experience map. Image_seq = " << image->header.seq);
-
-    //! convert to opencv image
-    image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
-
-    //! assign new image to the buffer
-    image_buffer_[image_index_end_].first = image_->image;
-    image_buffer_[image_index_end_].second = image_->header.seq;
-
-
-    //! increase index to last image
-    image_index_end_ = (image_index_end_+1)%image_buffer_.size();
-
-    if(image_index_end_ == image_index_begin_)
-    {
-        ROS_ERROR("Image buffer is full");
-    }
-
+    image_client_ = node_handle_.serviceClient<dolphin_slam::ImageRequest>("image_request");
 }
 
 
@@ -205,22 +180,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! set experience activation rate
     new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
-    //! set image
-    bool image_found = false;
-    for(int i=image_index_begin_;i != image_index_end_;i=(i+1)%image_buffer_.size())
-    {
-        //! look for same image seq
-        if(image_buffer_[i].second == event->lv_cells_.image_seq_)
-        {
-            image_found= true;
-            new_experience->image_ = image_buffer_[i].first;
-            image_index_begin_ = (i+1)%image_buffer_.size();
-            break;
-        }
-    }
-
-    if(!image_found)
-        ROS_ERROR("Image not found on image_buffer");
+    getImage(new_experience->image_,event->lv_cells_.image_seq_);
 
     //! set ground truth
     getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);
@@ -289,60 +249,60 @@ tf2::Vector3 ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &im
     sift_->compute(current_image, keypoints_1, descriptors_1);
     sift_->compute(image, keypoints_2, descriptors_2);
 
-//    //! Compute descriptors matches
-//    std::vector< cv::DMatch > matches;
-//    matcher_.match(descriptors_1, descriptors_2, matches);
+    //    //! Compute descriptors matches
+    //    std::vector< cv::DMatch > matches;
+    //    matcher_.match(descriptors_1, descriptors_2, matches);
 
-//    //! Receiving only good matches
-//    std::vector< cv::DMatch > good_matches;
+    //    //! Receiving only good matches
+    //    std::vector< cv::DMatch > good_matches;
 
-//    int min_dist = 100;
-//    for (int i = 0; i < matches.size(); ++i)
-//    {
-//        if (matches[i].distance < 2*min_dist)
-//        {
-//            good_matches.push_back(matches[i]);
-//        }
-//    }
+    //    int min_dist = 100;
+    //    for (int i = 0; i < matches.size(); ++i)
+    //    {
+    //        if (matches[i].distance < 2*min_dist)
+    //        {
+    //            good_matches.push_back(matches[i]);
+    //        }
+    //    }
 
-//    std::vector< cv::Point2f > scene_1;
-//    std::vector< cv::Point2f > scene_2;
-//    for( int i = 0; i < keypoints_1.size(); i++ )
-//    {
-//        //-- Get the keypoints from the good matches
-//        scene_1.push_back( keypoints_1[good_matches[i].queryIdx].pt );
-//        scene_2.push_back( keypoints_2[good_matches[i].trainIdx].pt );
-//    }
+    //    std::vector< cv::Point2f > scene_1;
+    //    std::vector< cv::Point2f > scene_2;
+    //    for( int i = 0; i < keypoints_1.size(); i++ )
+    //    {
+    //        //-- Get the keypoints from the good matches
+    //        scene_1.push_back( keypoints_1[good_matches[i].queryIdx].pt );
+    //        scene_2.push_back( keypoints_2[good_matches[i].trainIdx].pt );
+    //    }
 
 
-//    //! Finding homography with RANSAC
-//    cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
+    //    //! Finding homography with RANSAC
+    //    cv::Mat H = cv::findHomography( scene_1, scene_2, CV_RANSAC );
 
-//    //! Finding the image center
-//    int image_center_x = current_image.cols / 2;
-//    int image_center_y = current_image.rows / 2;
+    //    //! Finding the image center
+    //    int image_center_x = current_image.cols / 2;
+    //    int image_center_y = current_image.rows / 2;
 
-//    //! Getting the center in the other image
-//    cv::Mat image_center(1, 3, CV_32F);
-//    image_center.at<float>(0, 0) = image_center_x;
-//    image_center.at<float>(0, 1) = image_center_y;
-//    image_center.at<float>(0, 2) = 1;
+    //    //! Getting the center in the other image
+    //    cv::Mat image_center(1, 3, CV_32F);
+    //    image_center.at<float>(0, 0) = image_center_x;
+    //    image_center.at<float>(0, 1) = image_center_y;
+    //    image_center.at<float>(0, 2) = 1;
 
-//    //! Finding field of view angle
-//    float field_of_view_angle_x = 2*atan(0.5*current_image.cols / parameters_.focal_length_);
-//    float field_of_view_angle_y = 2*atan(0.5*current_image.rows / parameters_.focal_length_);
+    //    //! Finding field of view angle
+    //    float field_of_view_angle_x = 2*atan(0.5*current_image.cols / parameters_.focal_length_);
+    //    float field_of_view_angle_y = 2*atan(0.5*current_image.rows / parameters_.focal_length_);
 
-//    //! \todo: get the height now
-//    float field_of_view_x = tan(field_of_view_angle_x) * current_image.cols;
-//    float field_of_view_y = tan(field_of_view_angle_y) * current_image.rows;
+    //    //! \todo: get the height now
+    //    float field_of_view_x = tan(field_of_view_angle_x) * current_image.cols;
+    //    float field_of_view_y = tan(field_of_view_angle_y) * current_image.rows;
 
-//    //! Compute how much a pixel affect the image
-//    float pixel_value_x = field_of_view_x / current_image.cols;
-//    float pixel_value_y = field_of_view_y / current_image.rows;
+    //    //! Compute how much a pixel affect the image
+    //    float pixel_value_x = field_of_view_x / current_image.cols;
+    //    float pixel_value_y = field_of_view_y / current_image.rows;
 
-//    cv::Mat point = image_center * H;
+    //    cv::Mat point = image_center * H;
 
-//    image_translation.setValue((point.at<float>(0,0) / point.at<float>(0,2)) * pixel_value_x,(point.at<float>(0,1)/point.at<float>(0,2))* pixel_value_y,0);
+    //    image_translation.setValue((point.at<float>(0,0) / point.at<float>(0,2)) * pixel_value_x,(point.at<float>(0,1)/point.at<float>(0,2))* pixel_value_y,0);
 
     return image_translation;
 }
@@ -380,7 +340,7 @@ void ExperienceMap::computeMatches()
         ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
 
         //! create links between experiences
-       // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
+        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
         //link_ptr = &map_[link_descriptor];
 
         //link_ptr->translation_ = translation;
@@ -711,6 +671,29 @@ void ExperienceMap::publishTFPoses()
 
     //    msg = createTransformStamped(map_[current_experience_descriptor_].dr_pose_,ros::Time::now(),"world","em_dr_pose");
     //    tf_broadcaster_.sendTransform(msg);
+
+}
+
+void ExperienceMap::getImage(cv::Mat &image, int seq)
+{
+    dolphin_slam::ImageRequest srv;
+    cv_bridge::CvImagePtr cv_image;
+
+    srv.request.seq = seq;
+
+    if (image_client_.call(srv))
+    {
+        ROS_DEBUG_STREAM("ImageRequest call succesfully. image_seq = " << seq);
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to call service image_request");
+        return;
+    }
+
+    cv_image = cv_bridge::toCvCopy(srv.response.image,sensor_msgs::image_encodings::MONO8);
+
+    image = cv_image->image;
 
 }
 
