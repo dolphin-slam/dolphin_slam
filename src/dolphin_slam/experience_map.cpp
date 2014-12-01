@@ -16,7 +16,6 @@ ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), it_(node_handle_)
     max_id_experience_ = 0;
     number_of_recognized_experiences_ = 0;
     number_of_created_experiences_ = 0;
-    test_number_ = 0;
 
     loadParameters();
 
@@ -27,14 +26,14 @@ ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), it_(node_handle_)
     sift_ = new cv::SIFT();//! arrumar os parametros do sift para um melhor aproveitamento
 
     std::string filename;
-    filename = "experience_map_error_" + boost::lexical_cast<std::string>(test_number_) + ".txt";
+    filename = "experience_map_error.txt";
     experience_map_error_file_.open(filename.c_str());
 
-    filename = "dead_reckoning_error_" + boost::lexical_cast<std::string>(test_number_) + ".txt";
+    filename = "dead_reckoning_error.txt";
     dead_reckoning_error_file_.open(filename.c_str());
 
-    filename = "experience_map_info_" + boost::lexical_cast<std::string>(test_number_) + ".txt";
-    experience_map_file_.open(filename.c_str());
+    filename = "experience_map_info.txt";
+    experience_map_info_file_.open(filename.c_str());
 }
 
 ExperienceMap::~ExperienceMap()
@@ -42,7 +41,9 @@ ExperienceMap::~ExperienceMap()
     experience_map_error_file_.close();
     dead_reckoning_error_file_.close();
 
-    experience_map_file_.close();
+    experience_map_info_file_.close();
+
+    storeMaps();
 
 }
 
@@ -384,7 +385,7 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
                                   dead_reckoning_independent_error_.x << " " << dead_reckoning_independent_error_.y << " " << dead_reckoning_independent_error_.z << std::endl;
 
 
-    experience_map_file_ << number_of_created_experiences_ << " " <<  number_of_recognized_experiences_ << " " << time_monitor_.getDuration() << " " <<
+    experience_map_info_file_ << number_of_created_experiences_ << " " <<  number_of_recognized_experiences_ << " " << time_monitor_.getDuration() << " " <<
                             experience_map_error_ << " " << dead_reckoning_error_ << " " << localisationErrorEM_ << " " << localisationErrorDR_ << std::endl;
 
 }
@@ -420,26 +421,26 @@ void ExperienceMap::calculeLocalisationError()
 
 void ExperienceMap::storeMaps()
 {
-    std::ofstream experience_map_file, dead_reckoning_map_file, experience_map_ground_truth_file, dead_reckoning_ground_truth_file;
-
-    std::string filename;
-    filename = "experience_map"+boost::lexical_cast<std::string>(test_number_)+".txt";
-    experience_map_file.open(filename.c_str());
-
-    filename = "experience_map_ground_truth"+boost::lexical_cast<std::string>(test_number_)+".txt";
-    experience_map_ground_truth_file.open(filename.c_str());
-
-    filename = "dead_reckoning_map"+boost::lexical_cast<std::string>(test_number_)+".txt";
-    dead_reckoning_map_file.open(filename.c_str());
-
-    filename = "dead_reckoning_ground_truth"+boost::lexical_cast<std::string>(test_number_)+".txt";
-    dead_reckoning_ground_truth_file.open(filename.c_str());
+    std::ofstream experience_map_file("experience_map.txt");
+    std::ofstream dead_reckoning_file("dead_reckoning.txt");
+    std::ofstream ground_truth_file("ground_truth.txt");
+    tf2::Vector3 position;
 
     //! \todo store maps here
+    BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_))
+    {
+        position = map_[exp].pose_.getOrigin();
+        experience_map_file << position.x() << " " << position.y() << " " << position.z() << std::endl;
+        position = map_[exp].dr_pose_.getOrigin();
+        dead_reckoning_file << position.x() << " " << position.y() << " " << position.z() << std::endl;
+        position = map_[exp].gt_pose_.getOrigin();
+        ground_truth_file << position.x() << " " << position.y() << " " << position.z() << std::endl;
+
+    }
 
     experience_map_file.close();
-    dead_reckoning_map_file.close();
-
+    dead_reckoning_file.close();
+    ground_truth_file.close();
 }
 
 /*!

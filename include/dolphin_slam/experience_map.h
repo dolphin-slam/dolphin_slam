@@ -123,7 +123,7 @@ private:
     std::ofstream experience_map_error_file_;
     std::ofstream dead_reckoning_error_file_;
 
-    std::ofstream experience_map_file_;
+    std::ofstream experience_map_info_file_;
 
     //ROS related variables
     //! ROS Node Handle

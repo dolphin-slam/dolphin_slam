@@ -15,6 +15,4 @@ int main(int argc, char **argv){
 
     ROS_INFO_STREAM("Shutting Down Experience Map");
 
-    experience_map.storeMaps();
-
 }
