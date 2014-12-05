@@ -56,7 +56,7 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.param<double>("input_learning_rate",parameters_.input_learning_rate_,1);
 
-    private_nh.param<int>("min_input_age",parameters_.min_input_age_,5);
+    private_nh.param<int>("min_input_age",parameters_.min_input_age_,50);
 
     private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
 
@@ -448,6 +448,7 @@ void PlaceCellNetwork::externalInput()
             local_view_age = lv_cell_count_ - lv_cells_active_[lvc].id_;
 
             if(local_view_age >= parameters_.min_input_age_){
+                ROS_DEBUG_STREAM("Local view cell age = " << local_view_age);
                 //! apply external inputs
                 neurons_ += lv_cells_active_[lvc].rate_ *
                         local_view_synaptic_weights_[lv_cells_active_[lvc].id_];
@@ -849,7 +850,6 @@ double PlaceCellNetwork::getActiveNeuron(std::vector<int> &active_neuron)
                     max_activity = neurons_(index);
                     std::copy(index,index+DIMS,active_neuron.begin());
                 }
-
             }
         }
 
@@ -922,19 +922,22 @@ void PlaceCellNetwork::publishNetworkActivityMessage()
 
                 index[0]=i;  index[1]=j;  index[2]=k;
 
-                //! set point position
-                message.points[point_index].x = i;
-                message.points[point_index].y = j;
-                message.points[point_index].z = k;
+                if(neurons_(index)/max > 0.1){
 
-                color.setColor(neurons_(index)/max);
+                    //! set point position
+                    message.points[point_index].x = i;
+                    message.points[point_index].y = j;
+                    message.points[point_index].z = k;
 
-                //! set point color, according to network activity;
-                message.colors[point_index].r = color.getR();
-                message.colors[point_index].g = color.getG();
-                message.colors[point_index].b = color.getB();
-                message.colors[point_index].a = 1.0;
+                    color.setColor(neurons_(index)/max);
 
+                    //! set point color, according to network activity;
+                    message.colors[point_index].r = color.getR();
+                    message.colors[point_index].g = color.getG();
+                    message.colors[point_index].b = color.getB();
+                    message.colors[point_index].a = 1.0;
+
+                }
                 point_index++;
 
 

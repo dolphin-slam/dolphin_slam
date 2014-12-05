@@ -316,6 +316,9 @@ void ExperienceMap::computeMatches()
     Link * link_ptr;
     double similarity;
     tf2::Vector3 image_translation;
+    int best_match = -1;
+    double greatest_similarity = 0;
+
 
     BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
         if(exp != current_experience_descriptor_)
@@ -324,28 +327,37 @@ void ExperienceMap::computeMatches()
             if(similarity != parameters_.match_threshold_)
             {
                 matches.push_back(exp);
+
+                if(similarity > greatest_similarity)
+                {
+                    best_match = matches.size()-1;
+                }
             }
         }
     }
 
+    //! change experience position
+    if(best_match != -1)
+        map_[current_experience_descriptor_].pose_ = map_[matches[best_match]].pose_;
+
 
 
     //! create links between current experience and similar ones
-    BOOST_FOREACH(ExperienceDescriptor exp, matches) {
+//    BOOST_FOREACH(ExperienceDescriptor exp, matches) {
 
-        ROS_DEBUG_STREAM("Experience match: " << map_[current_experience_descriptor_].id_ << " " << map_[exp].id_);
+//        ROS_DEBUG_STREAM("Experience match: " << map_[current_experience_descriptor_].id_ << " " << map_[exp].id_);
 
-        //! \todo
-        //! compute transform between images
-        image_translation = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
-        ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
+//        //! \todo
+//        //! compute transform between images
+//        image_translation = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+//        ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
 
-        //! create links between experiences
-        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
-        //link_ptr = &map_[link_descriptor];
+//        //! create links between experiences
+//        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
+//        //link_ptr = &map_[link_descriptor];
 
-        //link_ptr->translation_ = translation;
-    }
+//        //link_ptr->translation_ = translation;
+//    }
 }
 
 
