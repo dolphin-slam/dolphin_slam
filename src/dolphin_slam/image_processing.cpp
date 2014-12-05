@@ -35,8 +35,13 @@ void ImageProcessing::loadParameters()
     //! string image_topic;
     private_nh_.param<string>("image_topic",parameters_.image_topic_,"/image_raw");
 
+    private_nh_.param<string>("sonar_topic",parameters_.sonar_topic_,"/sonar");
+
     //! string image_transport;
     private_nh_.param<string>("image_transport",parameters_.image_transport_,"raw");
+
+    //! string image_transport;
+    private_nh_.param<string>("sonar_transport",parameters_.sonar_transport_,"raw");
 
     //! string output_topic;
     private_nh_.param<string>("descriptors_topic",parameters_.descriptors_topic_,"/descriptors");
@@ -47,6 +52,7 @@ void ImageProcessing::loadParameters()
     //! int frames_to_jump;
     private_nh_.param<int>("frames_to_jump",parameters_.frames_to_jump_,0);
 
+    private_nh_.param<string>("source",parameters_.source_,"camera");
 
 }
 
@@ -54,11 +60,28 @@ void ImageProcessing::loadParameters()
 void ImageProcessing::createROSSubscribers()
 {
 
-    //! hint to modify the image_transport. Here I use raw transport
-    image_transport::TransportHints hints(parameters_.image_transport_,ros::TransportHints(),node_handle_);
 
-    //! image subscription
-    image_subscriber_ = it_.subscribe(parameters_.image_topic_,1,&ImageProcessing::imageCallback,this,hints);
+    if(parameters_.source_ == "camera")
+    {
+
+        //! hint to modify the image_transport. Here I use raw transport
+        image_transport::TransportHints hints(parameters_.image_transport_,ros::TransportHints(),node_handle_);
+
+        //! image subscription
+        image_subscriber_ = it_.subscribe(parameters_.image_topic_,1,&ImageProcessing::imageCallback,this,hints);
+
+    }
+    else if (parameters_.source_ == "sonar")
+    {
+
+        //! hint to modify the image_transport. Here I use raw transport
+        image_transport::TransportHints hints(parameters_.sonar_transport_,ros::TransportHints(),node_handle_);
+
+        //! image subscription
+        image_subscriber_ = it_.subscribe(parameters_.sonar_topic_,1,&ImageProcessing::imageCallback,this,hints);
+
+    }
+
 
 }
 
@@ -125,24 +148,35 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
     static int count = 0;
 
     if (count == 0){
+        if(parameters_.source_ == "image")
+        {
 
-        ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
+            ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
 
-        image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+            image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
 
-        //! Detect SURF keypoints in the image
-        surf_->detect(image_->image,keypoints_);
-        //! Compute SURF descriptors
-        surf_->compute(image_->image,keypoints_,descriptors_);
+            //! Detect SURF keypoints in the image
+            surf_->detect(image_->image,keypoints_);
+            //! Compute SURF descriptors
+            surf_->compute(image_->image,keypoints_,descriptors_);
 
-        ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
+            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
-        image_buffer_.push(make_pair(image->header.seq,image_->image));
+            image_buffer_.push(make_pair(image->header.seq,image_->image));
 
-        publishDescriptors();
+            publishDescriptors();
 
-        publishImageKeypoints();
+            publishImageKeypoints();
 
+        }
+        else if(parameters_.source_ == "sonar")
+        {
+
+            ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
+
+            image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+
+        }
     }
 
     if(parameters_.frames_to_jump_)

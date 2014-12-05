@@ -38,10 +38,13 @@ struct ImageProcessingParameters
 {
     int surf_threshold_; //! quanto menor o threshold, maior o número de keypoints encontrados.
     string image_topic_;
+    string sonar_topic_;
     string image_transport_;
+    string sonar_transport_;
     string descriptors_topic_;
     string image_keypoints_topic_;
     int frames_to_jump_;
+    string source_;
 };
 
 
