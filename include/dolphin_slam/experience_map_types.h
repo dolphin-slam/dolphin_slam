@@ -60,7 +60,9 @@ struct Experience
             rate_lv_ = 0;
         }
 
-        rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
+//        rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
+
+        rate_total_ = rate_lv_;
 
         return rate_total_;
     }

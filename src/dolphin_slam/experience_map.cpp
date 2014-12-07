@@ -324,7 +324,7 @@ void ExperienceMap::computeMatches()
         if(exp != current_experience_descriptor_)
         {
             similarity = map_[exp].computeSimilarity(map_[current_experience_descriptor_]);
-            if(similarity != parameters_.match_threshold_)
+            if(similarity >= parameters_.match_threshold_)
             {
                 matches.push_back(exp);
 
