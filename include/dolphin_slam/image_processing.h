@@ -10,6 +10,9 @@
 #include <opencv/cv.h>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+#include <boost/foreach.hpp>
 
 #include <string>
 #include <fstream>
@@ -45,6 +48,7 @@ struct ImageProcessingParameters
     string image_keypoints_topic_;
     int frames_to_jump_;
     string source_;
+    string sonar_mask_;
 };
 
 
@@ -91,7 +95,9 @@ private:
 
     std::queue < std::pair<int,cv::Mat> > image_buffer_;
 
-    cv_bridge::CvImageConstPtr image_;
+    cv_bridge::CvImagePtr image_;
+
+    cv::Mat sonar_mask_;
 
 };
 

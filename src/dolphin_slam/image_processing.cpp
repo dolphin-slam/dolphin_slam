@@ -54,6 +54,8 @@ void ImageProcessing::loadParameters()
 
     private_nh_.param<string>("source",parameters_.source_,"camera");
 
+    private_nh_.param<string>("sonar_mask",parameters_.sonar_mask_,"sonar_mask.jpg");
+
 }
 
 
@@ -103,7 +105,21 @@ void ImageProcessing::createROSServices()
 
 bool ImageProcessing::init()
 {
-    surf_ = new cv::SURF(parameters_.surf_threshold_);
+
+    if(parameters_.source_ == "camera")
+    {
+        surf_ = new cv::SURF(parameters_.surf_threshold_);
+    }
+    else if(parameters_.source_ == "sonar")
+    {
+        surf_ = new cv::SURF(parameters_.surf_threshold_,1,1);
+
+        sonar_mask_ = cv::imread(parameters_.sonar_mask_,CV_LOAD_IMAGE_GRAYSCALE);
+
+        cv::threshold(sonar_mask_,sonar_mask_,127,255,CV_THRESH_BINARY);
+
+        cv::imwrite("sonar_mask.jpg",sonar_mask_);
+    }
 }
 
 
@@ -146,9 +162,12 @@ void ImageProcessing::publishDescriptors()
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 {
     static int count = 0;
+    unsigned char thresh1 = 100;
+    unsigned char thresh2 = 200;
+    unsigned char pixel;
 
     if (count == 0){
-        if(parameters_.source_ == "image")
+        if(parameters_.source_ == "camera")
         {
 
             ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
@@ -172,9 +191,44 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
         else if(parameters_.source_ == "sonar")
         {
 
-            ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
 
             image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+
+
+
+            for(int i=0;i<image_->image.rows;i++)
+            {
+                for(int j=0;j<image_->image.cols;j++)
+                {
+                    pixel = image_->image.at<unsigned char>(i,j);
+                    if(pixel < thresh1)
+                        pixel = thresh1;
+                    if(pixel > thresh2)
+                        pixel = thresh1;
+
+                    pixel = static_cast<unsigned char>(static_cast<float>(pixel - thresh1)/static_cast<float>(thresh2 - thresh1)*255);
+
+                    image_->image.at<unsigned char>(i,j) = pixel;
+                }
+
+            }
+
+
+
+            //cv::GaussianBlur(image_->image,image_->image,cv::Size(15,15),4,4);
+
+            //! Detect SURF keypoints in the image
+            surf_->detect(image_->image,keypoints_);
+            //! Compute SURF descriptors
+            surf_->compute(image_->image,keypoints_,descriptors_);
+
+            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
+
+            image_buffer_.push(make_pair(image->header.seq,image_->image));
+
+            publishDescriptors();
+
+            publishImageKeypoints();
 
         }
     }
