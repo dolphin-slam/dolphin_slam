@@ -58,7 +58,7 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.param<int>("min_input_age",parameters_.min_input_age_,50);
 
-    private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"multiple");
+    private_nh.param<std::string>("local_view_activation",parameters_.local_view_activation_,"single");
 
     private_nh.param<std::string>("weight_function",parameters_.weight_function_,"mexican_hat");
 
@@ -440,6 +440,8 @@ void PlaceCellNetwork::externalInput()
     //! Hebbian Learning
     learnExternalConnections();
 
+    double external_input;
+
 
     if(parameters_.local_view_activation_ == "multiple")
     {
@@ -450,10 +452,9 @@ void PlaceCellNetwork::externalInput()
             if(local_view_age >= parameters_.min_input_age_){
                 ROS_DEBUG_STREAM("Local view cell age = " << local_view_age);
                 //! apply external inputs
-                neurons_ += lv_cells_active_[lvc].rate_ *
+                neurons_ +=lv_cells_active_[lvc].rate_ *
                         local_view_synaptic_weights_[lv_cells_active_[lvc].id_];
             }
-
         }
     }
     else if (parameters_.local_view_activation_ == "single")
@@ -462,6 +463,8 @@ void PlaceCellNetwork::externalInput()
         local_view_age = lv_cell_count_ - most_active_lv_cell_;
 
         if(local_view_age >= parameters_.min_input_age_){
+            ROS_DEBUG_STREAM("Local view cell age = " << local_view_age);
+
             //! apply external inputs
             neurons_ += local_view_synaptic_weights_[most_active_lv_cell_];
         }

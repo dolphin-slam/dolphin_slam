@@ -227,6 +227,8 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     cv_image.encoding = sensor_msgs::image_encodings::MONO8;
     image_publisher_.publish(cv_image.toImageMsg());
 
+    ROS_DEBUG_STREAM("Experience created: lv_id =  " << new_experience->lv_cell_id_  << " pc_index = " <<  new_experience->pc_index_[0] << " " << new_experience->pc_index_[1] << " " << new_experience->pc_index_[2] );
+
 }
 
 /**
