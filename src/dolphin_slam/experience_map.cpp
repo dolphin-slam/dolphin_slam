@@ -23,6 +23,8 @@ ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), it_(node_handle_)
 
     createROSSubscribers();
 
+    createROSServices();
+
     sift_ = new cv::SIFT();//! arrumar os parametros do sift para um melhor aproveitamento
 
     std::string filename;
@@ -62,6 +64,10 @@ void ExperienceMap::loadParameters()
 
     //! double focal_length;
     private_nh_.param<double>("focal_length",parameters_.focal_length_,1500.1);
+
+    private_nh_.param<double>("lv_factor",parameters_.lv_factor_,0.5);
+
+    private_nh_.param<double>("pc_factor",parameters_.pc_factor_,0.5);
 
 }
 
@@ -155,6 +161,39 @@ void ExperienceMap::getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp)
     dr_pose = getTransform(transform);
 }
 
+void ExperienceMap::computeActivationRate(const ExperienceEventConstPtr &event)
+{
+    Experience * exp_ptr;
+
+    int index_pc;
+    int neurons0 =  event->pc_activity_.number_of_neurons_[0];
+    int neurons1 =  event->pc_activity_.number_of_neurons_[1];
+
+    BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
+        exp_ptr = &map_[exp];
+
+        index_pc = exp_ptr->pc_index_[0]*neurons0*neurons1 +
+                exp_ptr->pc_index_[1]*neurons1 +
+                exp_ptr->pc_index_[2];
+
+
+        exp_ptr->rate_pc_ = event->pc_activity_.activity_[index_pc];
+
+        if(exp_ptr->lv_cell_id_ == event->lv_cells_.most_active_cell_)
+        {
+            exp_ptr->rate_lv_ = 1;
+        }
+        else
+        {
+            exp_ptr->rate_lv_ = 0;
+        }
+
+        exp_ptr->rate_total_ = parameters_.lv_factor_*exp_ptr->rate_lv_ + parameters_.pc_factor_*exp_ptr->rate_pc_;
+    }
+
+}
+
+
 void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
 {
     ExperienceDescriptor new_experience_descriptor;
@@ -181,7 +220,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! set experience activation rate
     new_experience->rate_total_ = new_experience->rate_lv_ = new_experience->rate_pc_ = 1.0;
 
-    getImage(new_experience->image_,event->lv_cells_.image_seq_);
+    //getImage(new_experience->image_,event->lv_cells_.image_seq_);
 
     //! set ground truth
     getGroundTruth(new_experience->gt_pose_,event->lv_cells_.image_stamp_);
@@ -243,7 +282,7 @@ tf2::Vector3 ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &im
     tf2::Vector3 image_translation;
 
     //! Compute sift descriptors
-    vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
     cv::Mat descriptors_1, descriptors_2;
 
     sift_->detect(current_image, keypoints_1);
@@ -314,52 +353,49 @@ tf2::Vector3 ExperienceMap::getImageTransform(cv::Mat &current_image,cv::Mat &im
 void ExperienceMap::computeMatches()
 {
     std::vector<ExperienceDescriptor> matches;
-    LinkDescriptor link_descriptor;
-    Link * link_ptr;
     double similarity;
-    tf2::Vector3 image_translation;
     int best_match = -1;
-    double greatest_similarity = 0;
-
+    double best_similarity = 0;
 
     BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
-        if(exp != current_experience_descriptor_)
-        {
-            similarity = map_[exp].computeSimilarity(map_[current_experience_descriptor_]);
-            if(similarity >= parameters_.match_threshold_)
-            {
-                matches.push_back(exp);
 
-                if(similarity > greatest_similarity)
-                {
-                    best_match = matches.size()-1;
-                }
+        similarity = map_[exp].rate_total_;
+
+        if(similarity >= parameters_.match_threshold_)
+        {
+            matches.push_back(exp);
+
+            if(similarity > best_similarity)
+            {
+                best_match = matches.size()-1;
+                best_similarity = similarity;
             }
         }
     }
 
     //! change experience position
     if(best_match != -1)
+    {
         map_[current_experience_descriptor_].pose_ = map_[matches[best_match]].pose_;
-
-
+        ROS_DEBUG_STREAM("Match found: " << map_[matches[best_match]].id_ << " " << map_[current_experience_descriptor_].id_);
+    }
 
     //! create links between current experience and similar ones
-//    BOOST_FOREACH(ExperienceDescriptor exp, matches) {
+    //    BOOST_FOREACH(ExperienceDescriptor exp, matches) {
 
-//        ROS_DEBUG_STREAM("Experience match: " << map_[current_experience_descriptor_].id_ << " " << map_[exp].id_);
+    //        ROS_DEBUG_STREAM("Experience match: " << map_[current_experience_descriptor_].id_ << " " << map_[exp].id_);
 
-//        //! \todo
-//        //! compute transform between images
-//        image_translation = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
-//        ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
+    //        //! \todo
+    //        //! compute transform between images
+    //        image_translation = getImageTransform(map_[current_experience_descriptor_].image_,map_[exp].image_);
+    //        ROS_DEBUG_STREAM("image_transform = " << image_translation.x() << " " << image_translation.y() << " " << image_translation.z() );
 
-//        //! create links between experiences
-//        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
-//        //link_ptr = &map_[link_descriptor];
+    //        //! create links between experiences
+    //        // link_descriptor = boost::add_edge(current_experience_descriptor_,exp,map_).first;
+    //        //link_ptr = &map_[link_descriptor];
 
-//        //link_ptr->translation_ = translation;
-//    }
+    //        //link_ptr->translation_ = translation;
+    //    }
 }
 
 
@@ -374,6 +410,8 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
     time_monitor_.start();
 
     createExperience(event);
+
+    computeActivationRate(event);
 
     computeMatches();
 
@@ -400,7 +438,7 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
 
     experience_map_info_file_ << number_of_created_experiences_ << " " <<  number_of_recognized_experiences_ << " " << time_monitor_.getDuration() << " " <<
-                            experience_map_error_ << " " << dead_reckoning_error_ << " " << localisationErrorEM_ << " " << localisationErrorDR_ << std::endl;
+                                 experience_map_error_ << " " << dead_reckoning_error_ << " " << localisationErrorEM_ << " " << localisationErrorDR_ << std::endl;
 
 }
 
@@ -702,7 +740,7 @@ void ExperienceMap::getImage(cv::Mat &image, int seq)
     }
     else
     {
-        ROS_ERROR_STREAM("Failed to call service image_request");
+        ROS_ERROR_STREAM("Failed to call service image_request. image_seq = " << seq);
         return;
     }
 

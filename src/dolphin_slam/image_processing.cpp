@@ -15,6 +15,8 @@ ImageProcessing::ImageProcessing() : it_(node_handle_)
 
     createROSPublishers();
 
+    createROSServices();
+
     log_file_.open("image_processing.log");
 
 }
@@ -251,7 +253,7 @@ bool ImageProcessing::imageRequest(dolphin_slam::ImageRequest::Request  &req,
         if(next_element.first == req.seq)
         {
             image_response.header.seq = req.seq;
-            image_response.encoding = sensor_msgs::image_encodings::BGR8;
+            image_response.encoding = sensor_msgs::image_encodings::MONO8;
             image_response.image = next_element.second;
             image_response.toImageMsg(res.image);
         }

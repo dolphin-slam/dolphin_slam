@@ -51,15 +51,17 @@
         <param name="neurons_per_dimension" type="int" value="15"/>
         <param name="neurons_step" type="double" value="0.15" />
 		<param name="recurrent_connection_std" type="int" value="3" />
-        <param name="input_learning_rate" type="double" value="0.5" />
-        <param name="min_input_age" type="int" value="100" />
+        <param name="input_learning_rate" type="double" value="0.85" />
+        <param name="min_input_age" type="int" value="10" />
 		<param name="local_view_activation" type="string" value="single" />
 		<param name="weight_function" type="string" value="mexican_hat" />
     </node>
 
     <node name="experience_map_node" pkg="dolphin_slam" type="experience_map_node" required="true">
-		<param name="match_threshold" type="double" value="0.75" />
-		<param name="focal_lenght" type="double" value="1501.2" />
+        <param name="match_threshold" type="double" value="0.75" />
+        <param name="lv_factor" type="double" value="0.5" />
+        <param name="pc_factor" type="double" value="0.5" />
+        <param name="focal_lenght" type="double" value="1501.2" />
     </node>
 
     <!-- Visualization tools -->

@@ -20,8 +20,9 @@
 
 #include <fstream>
 
+#include <cv_bridge/cv_bridge.h>
 
-#include <experience_map_types.h>
+//#include <experience_map_types.h>
 
 //! Boost
 #include <boost/graph/adjacency_list.hpp> //!< biblioteca para grafos
@@ -36,6 +37,7 @@
 #include <dolphin_slam/ImageRequest.h>
 
 #include <angles/angles.h>
+#include <vector>
 
 #include <time_monitor/time_monitor.h>
 
@@ -45,12 +47,55 @@
 namespace dolphin_slam
 {
 
+struct Experience
+{
+    int id_;
+    int pc_index_[3];    //!< Neuron active on creation of experience
+    int lv_cell_id_;
+
+    cv::Mat image_;
+
+    tf2::Transform pose_;
+    tf2::Transform gt_pose_;
+    tf2::Transform dr_pose_;
+
+    double rate_lv_;
+    double rate_pc_;
+    double rate_total_;
+
+};
+
+
+struct Link
+{
+    tf2::Vector3 translation_; //! expressed in world frame
+};
+
+
+//!  Topological Map using the boost Graph
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,Experience, Link> Map;
+
+//! Experience Descriptor
+typedef boost::graph_traits<Map>::vertex_descriptor ExperienceDescriptor;
+
+//! Link Descriptor
+typedef boost::graph_traits<Map>::edge_descriptor LinkDescriptor;
+
+//! Experience iterator
+typedef boost::graph_traits<Map>::vertex_iterator ExperienceIterator;
+
+typedef std::pair <LinkDescriptor,bool> ResultOfLinkCreation;
+
+
+
 struct ExperienceMapParameters
 {
     std::string image_topic_;
     std::string image_transport_;
     double match_threshold_;
     double focal_length_;
+    double lv_factor_;
+    double pc_factor_;
 };
 
 class ExperienceMap
@@ -70,6 +115,8 @@ private:
     void calculeLocalisationError();
 
     void createExperience(const ExperienceEventConstPtr &event);
+
+    void computeActivationRate(const ExperienceEventConstPtr &event);
 
     void computeMatches();
 

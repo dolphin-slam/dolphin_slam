@@ -60,9 +60,9 @@ struct Experience
             rate_lv_ = 0;
         }
 
-        rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
+//        rate_total_ = 0.5*rate_lv_ + 0.5*rate_pc_;
 
-        //rate_total_ = rate_lv_;
+        rate_total_ = rate_lv_;
 
         return rate_total_;
     }
@@ -92,8 +92,6 @@ typedef boost::graph_traits<Map>::edge_descriptor LinkDescriptor;
 
 //! Experience iterator
 typedef boost::graph_traits<Map>::vertex_iterator ExperienceIterator;
-
-
 
 typedef std::pair <LinkDescriptor,bool> ResultOfLinkCreation;
 
