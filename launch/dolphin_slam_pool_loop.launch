@@ -4,7 +4,7 @@
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
 
 	<!-- Name of bag file -->
-	<arg name="bagfile" default="$(find dolphin_slam)/experiments/pool_loop/test/girona_rotated.bag"/>
+	<arg name="bagfile" default="$(find dolphin_slam)/experiments/pool_loop/test/test.bag"/>
 
 	<!-- Vocabulary path. The path must end with an "/" -->
 	<arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/uwsim/training/"/>
@@ -14,9 +14,6 @@
 	<!-- Play messages from bagfile -->
     <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q --clock" required="false"/>
 	
-	<!-- image pipeline -->
-    <node pkg="image_proc" type="image_proc" name="image_proc" required="true" ns="/stereo_camera/left"/>
-
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
        	<param name="surf_threshold" type="int" value="100" />		
@@ -24,12 +21,13 @@
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-		<param name="frames_to_jump" type="int" value="50" />
+		<param name="frames_to_jump" type="int" value="5" />
     </node>
 
 	<!-- local view node  -->
     <node pkg="dolphin_slam" type="local_view_node" name="local_view_node" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />
+		<param name="matching_algorithm" type="string" value="fabmap" />		
 		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />		
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
 		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
@@ -38,15 +36,33 @@
     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/robot_state.yaml" />
+		<param name="dvl_topic" type="string" value="/dvl" />
+		<param name="imu_topic" type="string" value="/imu" />
+		<param name="base_frame" type="string" value="girona500" />
+		<param name="dvl_position/x" type="double" value="-0.75" />
+		<param name="dvl_position/y" type="double" value="0" />
+		<param name="dvl_position/z" type="double" value="0" />
+		<param name="dvl_orientation/r" type="double" value="0" />
+		<param name="dvl_orientation/p" type="double" value="0" />
+		<param name="dvl_orientation/y" type="double" value="-2.356"/>
     </node>
 
     <node name="place_cell_node" pkg="dolphin_slam" type="place_cell_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/place_cells.yaml" />
+        <param name="neurons_per_dimension" type="int" value="10"/>
+        <param name="neurons_step" type="double" value="0.25" />
+		<param name="recurrent_connection_std" type="int" value="3" />
+        <param name="input_learning_rate" type="double" value="0.85" />
+        <param name="min_input_age" type="int" value="10" />
+		<param name="local_view_activation" type="string" value="single" />
+		<param name="weight_function" type="string" value="mexican_hat" />
     </node>
 
     <node name="experience_map_node" pkg="dolphin_slam" type="experience_map_node" required="true">
-            <rosparam command="load" file="$(find dolphin_slam)/config/experience_map.yaml" />
+        <param name="match_threshold" type="double" value="0.75" />
+        <param name="lv_factor" type="double" value="0.5" />
+        <param name="pc_factor" type="double" value="0.5" />
+        <param name="min_experience_age" type="int" value="5" />
+        <param name="focal_lenght" type="double" value="1501.2" />
     </node>
 
     <!-- Visualization tools -->

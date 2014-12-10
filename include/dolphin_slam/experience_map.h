@@ -2,7 +2,6 @@
 #define EXPERIENCE_MAP_H
 
 #include <ros/ros.h>
-#include <tf/tf.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -21,8 +20,6 @@
 #include <fstream>
 
 #include <cv_bridge/cv_bridge.h>
-
-//#include <experience_map_types.h>
 
 //! Boost
 #include <boost/graph/adjacency_list.hpp> //!< biblioteca para grafos
@@ -96,6 +93,7 @@ struct ExperienceMapParameters
     double focal_length_;
     double lv_factor_;
     double pc_factor_;
+    int min_experience_age_;
 };
 
 class ExperienceMap
@@ -126,7 +124,7 @@ private:
 
     void getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp);
 
-    void iterateMap();
+    void updateMap();
 
     void calculeExperienceMapError();
     void calculeDeadReckoningError();
@@ -159,6 +157,9 @@ private:
     //! Map
     Map map_;
     Map dead_reckoning_map_;
+
+    tf2::Vector3 current_error_;
+
 
     float localisationErrorEM_;
     float localisationErrorDR_;
@@ -210,6 +211,8 @@ private:
     int image_index_end_;
 
     cv::FlannBasedMatcher matcher_;
+
+    std::vector<ExperienceDescriptor> experience_route_;
 
 
     tf2::Vector3 getImageTransform(cv::Mat &current_image, cv::Mat &image);

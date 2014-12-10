@@ -61,6 +61,7 @@
         <param name="match_threshold" type="double" value="0.75" />
         <param name="lv_factor" type="double" value="0.5" />
         <param name="pc_factor" type="double" value="0.5" />
+        <param name="min_experience_age" type="int" value="5" />
         <param name="focal_lenght" type="double" value="1501.2" />
     </node>
 

@@ -68,7 +68,6 @@ void PlaceCellNetwork::loadParameters()
 void PlaceCellNetwork::createROSSubscribers()
 {
     view_template_subscriber_ = node_handle_.subscribe("local_view_cells", 1, &PlaceCellNetwork::localViewCallback, this);
-
 }
 
 void PlaceCellNetwork::createROSPublishers()

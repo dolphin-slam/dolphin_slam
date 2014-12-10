@@ -69,6 +69,8 @@ void ExperienceMap::loadParameters()
 
     private_nh_.param<double>("pc_factor",parameters_.pc_factor_,0.5);
 
+    private_nh_.param<double>("min_experience_age",parameters_.min_experience_age_,10);
+
 }
 
 void ExperienceMap::createROSSubscribers()
@@ -233,6 +235,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     {
         //! set first pose at the same place as the ground truth
         new_experience->pose_ = new_experience->dr_pose_;
+
     }
     else
     {
@@ -260,6 +263,7 @@ void ExperienceMap::createExperience(const ExperienceEventConstPtr &event)
     //! update current experience descriptor
     current_experience_descriptor_ = new_experience_descriptor;
 
+    experience_route_.push_back(current_experience_descriptor_);
 
     cv_image.image = new_experience->image_;
     cv_image.header.stamp = ros::Time::now();
@@ -359,16 +363,18 @@ void ExperienceMap::computeMatches()
 
     BOOST_FOREACH(ExperienceDescriptor exp, boost::vertices(map_)) {
 
-        similarity = map_[exp].rate_total_;
+        if (map_[current_experience_descriptor_].id_  - map_[exp].id_ > parameters_.min_experience_age_) {
+            similarity = map_[exp].rate_total_;
 
-        if(similarity >= parameters_.match_threshold_)
-        {
-            matches.push_back(exp);
-
-            if(similarity > best_similarity)
+            if(similarity >= parameters_.match_threshold_)
             {
-                best_match = matches.size()-1;
-                best_similarity = similarity;
+                matches.push_back(exp);
+
+                if(similarity > best_similarity)
+                {
+                    best_match = matches.size()-1;
+                    best_similarity = similarity;
+                }
             }
         }
     }
@@ -376,8 +382,11 @@ void ExperienceMap::computeMatches()
     //! change experience position
     if(best_match != -1)
     {
-        map_[current_experience_descriptor_].pose_ = map_[matches[best_match]].pose_;
         ROS_DEBUG_STREAM("Match found: " << map_[matches[best_match]].id_ << " " << map_[current_experience_descriptor_].id_);
+
+        current_error_ = map_[matches[best_match]].pose_.getOrigin() - map_[current_experience_descriptor_].pose_.getOrigin() ;
+        updateMap();
+
     }
 
     //! create links between current experience and similar ones
@@ -415,7 +424,6 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     computeMatches();
 
-    //iterateMap();
 
     time_monitor_.finish();
 
@@ -766,8 +774,40 @@ void ExperienceMap::publishError()
 /*!
  * \brief Iterate map to minimize errors after loop closure events
  */
-void ExperienceMap::iterateMap()
+void ExperienceMap::updateMap()
 {
+
+    LinkDescriptor route;
+
+    ROS_DEBUG_STREAM("Map update:  current_error_ = " << current_error_.absolute());
+
+    tf2::Vector3 delta_error = current_error_/(experience_route_.size()-1);
+
+    for(int i=0;i<experience_route_.size()-1;i++)
+    {
+
+        BOOST_FOREACH(LinkDescriptor link, boost::out_edges(experience_route_[i],map_))
+        {
+            if(experience_route_[i+1] == boost::target(link,map_))
+            {
+                route = link;
+                break;
+            }
+        }
+
+        map_[route].translation_ += delta_error;
+
+        map_[experience_route_[i+1]].pose_.setOrigin(map_[experience_route_[i]].pose_.getOrigin() + map_[route].translation_);
+
+    }
+
+
+    experience_route_.clear();
+    experience_route_.push_back(current_experience_descriptor_);
+
+
+
+
     //    cv::Point3f difference_i,difference_o;
     //    int ni,no;
     //    ExperienceDescriptor adjacent_experience;
