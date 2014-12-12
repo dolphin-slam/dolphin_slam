@@ -69,7 +69,7 @@ void ExperienceMap::loadParameters()
 
     private_nh_.param<double>("pc_factor",parameters_.pc_factor_,0.5);
 
-    private_nh_.param<double>("min_experience_age",parameters_.min_experience_age_,10);
+    private_nh_.param<int>("min_experience_age",parameters_.min_experience_age_,10);
 
 }
 
