@@ -75,11 +75,17 @@ void FabmapTraining::train(const ros::TimerEvent &)
 
     ROS_DEBUG_STREAM("Start training");
 
+    std::cout << "start training" << std::endl;
+
     ROS_DEBUG_STREAM("Number of images: " << surf_descriptors_.size());
 
     bow_vocabulary_ = bow_trainer_->cluster();
 
+    std::cout << "Vocabulary trained" << std::endl;
+
     computeBoWDescriptors();
+
+    std::cout << "start chow liu tree" << std::endl ;
 
     cl_trainer_->add(bow_descriptors_);
 

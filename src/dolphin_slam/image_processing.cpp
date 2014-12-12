@@ -167,7 +167,7 @@ void ImageProcessing::publishDescriptors()
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     static int count = 0;
-    unsigned short int thresh1 = 400;
+    unsigned short int thresh1 = 150;
     unsigned short int thresh2 = 1100;
     unsigned short int pixel;
     float pixel_f;
@@ -272,7 +272,10 @@ bool ImageProcessing::computeShapeDescriptors(cv::Mat &image)
 
     int valid_contours = 0;
 
-    cv::findContours(image, contour,hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
+    cv::Mat image_contour;
+    image_contour = image.clone();
+
+    cv::findContours(image_contour, contour,hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
 
     hu_descriptors.resize(contour.size(),std::vector<float>(7));
 

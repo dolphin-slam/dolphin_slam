@@ -10,7 +10,7 @@
     <arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/pool_loop/training/"/>
 
 	<!-- Play messages from bagfile -->
-    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3" required="false"/>
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3 --clock" required="false"/>
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
