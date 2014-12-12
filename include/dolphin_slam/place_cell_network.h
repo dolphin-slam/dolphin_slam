@@ -13,7 +13,6 @@
 #include <visualization_msgs/Marker.h>
 #include <underwater_sensor_msgs/DVL.h>
 #include <dolphin_slam/ExperienceEvent.h>
-#include <dolphin_slam/RobotPose.h>
 #include <dolphin_slam/ExecutionTime.h>
 
 
