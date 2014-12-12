@@ -58,7 +58,7 @@ public:
     ImageProcessing();
     ~ImageProcessing();
 
-    void imageCallback(const sensor_msgs::ImageConstPtr &image);
+    void imageCallback(const sensor_msgs::ImageConstPtr &msg);
     bool imageRequest(ImageRequest::Request &req, ImageRequest::Response &res);
 
     void loadParameters();
@@ -69,6 +69,9 @@ public:
 
     void publishImageKeypoints();
     void publishDescriptors();
+
+    bool computeShapeDescriptors(cv::Mat &image);
+
 
 private:
 

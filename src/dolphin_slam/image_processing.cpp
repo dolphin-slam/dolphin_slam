@@ -114,7 +114,9 @@ bool ImageProcessing::init()
     }
     else if(parameters_.source_ == "sonar")
     {
-        surf_ = new cv::SURF(parameters_.surf_threshold_,1,1);
+        surf_ = new cv::SURF(parameters_.surf_threshold_);
+
+//        surf_ = new cv::SURF(parameters_.surf_threshold_,1,1);
 
         sonar_mask_ = cv::imread(parameters_.sonar_mask_,CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -161,20 +163,24 @@ void ImageProcessing::publishDescriptors()
 
 }
 
-void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
+void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     static int count = 0;
-    unsigned char thresh1 = 100;
-    unsigned char thresh2 = 200;
-    unsigned char pixel;
+    unsigned short int thresh1 = 400;
+    unsigned short int thresh2 = 1100;
+    unsigned short int pixel;
+    float pixel_f;
+
+    cv::Mat sonar_gray;
+
 
     if (count == 0){
         if(parameters_.source_ == "camera")
         {
 
-            ROS_DEBUG_STREAM("Image received. seq = " << image->header.seq);
+            ROS_DEBUG_STREAM("Image received. seq = " << msg->header.seq);
 
-            image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+            image_ = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::MONO8);
 
             //! Detect SURF keypoints in the image
             surf_->detect(image_->image,keypoints_);
@@ -183,7 +189,7 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
 
             ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
-            image_buffer_.push(make_pair(image->header.seq,image_->image));
+            image_buffer_.push(make_pair(msg->header.seq,image_->image));
 
             publishDescriptors();
 
@@ -194,49 +200,106 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &image)
         {
 
 
-            image_ = cv_bridge::toCvCopy(image,sensor_msgs::image_encodings::MONO8);
+            image_ = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::MONO16);
 
 
+            cv::blur( image_->image, image_->image, cv::Size(5,5) );
+            cv::medianBlur ( image_->image, image_->image, 5 );
+            //cv::GaussianBlur(image_->image,image_->image,cv::Size(15,15),4,4);
 
+            sonar_gray.create(image_->image.rows,image_->image.cols,CV_8U);
+
+            //! threshold and normalize to CV_8U image
             for(int i=0;i<image_->image.rows;i++)
             {
                 for(int j=0;j<image_->image.cols;j++)
                 {
-                    pixel = image_->image.at<unsigned char>(i,j);
+                    pixel = image_->image.at<unsigned short int>(i,j);
                     if(pixel < thresh1)
                         pixel = thresh1;
                     if(pixel > thresh2)
-                        pixel = thresh1;
+                        pixel = thresh2;
 
-                    pixel = static_cast<unsigned char>(static_cast<float>(pixel - thresh1)/static_cast<float>(thresh2 - thresh1)*255);
+                    pixel_f = static_cast<float>(pixel - thresh1)/static_cast<float>(thresh2 - thresh1);
 
-                    image_->image.at<unsigned char>(i,j) = pixel;
+                    //! mask
+                    if(sonar_mask_.at<unsigned char>(i,j) == 0)
+                    {
+                        sonar_gray.at<unsigned char>(i,j) = 0;
+                    }
+                    else
+                    {
+                        sonar_gray.at<unsigned char>(i,j) = static_cast<unsigned char>(pixel_f*255.0);
+                    }
+
+
+
                 }
 
             }
 
+            cv::threshold(sonar_gray,sonar_gray,1,255,CV_THRESH_BINARY);
 
+            image_->image = sonar_gray;
+            image_->encoding = sensor_msgs::image_encodings::MONO8;
 
-            //cv::GaussianBlur(image_->image,image_->image,cv::Size(15,15),4,4);
+            computeShapeDescriptors(sonar_gray);
 
-            //! Detect SURF keypoints in the image
-            surf_->detect(image_->image,keypoints_);
-            //! Compute SURF descriptors
-            surf_->compute(image_->image,keypoints_,descriptors_);
+//            //! Detect SURF keypoints in the image
+//            surf_->detect(image_->image,keypoints_);
+//            //! Compute SURF descriptors
+//            surf_->compute(image_->image,keypoints_,descriptors_);
 
-            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
+//            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
-            image_buffer_.push(make_pair(image->header.seq,image_->image));
+//            image_buffer_.push(make_pair(msg->header.seq,image_->image));
 
-            publishDescriptors();
+           publishDescriptors();
 
-            publishImageKeypoints();
+           publishImageKeypoints();
 
         }
     }
 
     if(parameters_.frames_to_jump_)
         count = (count + 1)%parameters_.frames_to_jump_;
+}
+
+bool ImageProcessing::computeShapeDescriptors(cv::Mat &image)
+{
+    vector<vector<cv::Point> > contour;
+    vector<cv::Vec4i> hierarchy;
+    cv::Moments mm;
+
+    cv::findContours(image, contour,hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
+    descriptors_.create(contour.size(),2,CV_32F);
+
+    keypoints_.resize(contour.size());
+
+    for( int i = 0; i< contour.size(); i++ )
+    {
+        mm = moments(contour[i]);
+        float w1 =0 ;
+        float w2 = 0;
+        if (mm.m00 != 0){
+           w1= mm.mu20/mm.m00;
+           w2 = mm.mu02/mm.m00;
+
+           keypoints_[i] = cv::KeyPoint(cv::Point(mm.m10/mm.m00,mm.m01/mm.m00),20);
+
+           if(w1 > w2)
+           {
+               descriptors_.at<float>(i,0) = w1;
+               descriptors_.at<float>(i,1) = w2;
+           }
+           else
+           {
+               descriptors_.at<float>(i,0) = w2;
+               descriptors_.at<float>(i,1) = w1;
+           }
+        }
+
+     }
 }
 
 bool ImageProcessing::imageRequest(dolphin_slam::ImageRequest::Request  &req,

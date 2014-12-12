@@ -44,6 +44,7 @@ void BoWTraining::init()
                                             cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS,50,0.001),
                                             5,
                                             cv::KMEANS_PP_CENTERS);
+
 }
 
 void BoWTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &msg)
@@ -54,11 +55,17 @@ void BoWTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &m
     //! Stop the timeout
     timeout_.stop();
 
-    surf_descriptors_.push_back(descriptors);
+    if(descriptors.rows > 0)
 
-    bow_trainer_->add(descriptors);
+    {
+        surf_descriptors_.push_back(descriptors);
+
+        bow_trainer_->add(descriptors);
+
+    }
 
     timeout_.start();
+
 }
 
 void BoWTraining::train(const ros::TimerEvent &)
