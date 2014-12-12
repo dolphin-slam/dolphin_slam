@@ -1,0 +1,78 @@
+<launch>
+
+	<!-- Change ROS logger levels -->
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
+
+	<!-- Name of bag file -->
+    <arg name="bagfile" default="/mnt/Dados/Yacht_05_12_2014/bags/yatch_cortado.bag"/>
+
+	<!-- Vocabulary path. The path must end with an "/" -->
+    <arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/yatch/training/"/>
+
+    <param name="/use_sim_time" type="bool" value="true" />
+
+	<!-- Play messages from bagfile -->
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q --clock" required="false"/>
+	
+    <!-- process images to extract surf keypoints -->
+    <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
+        <param name="surf_threshold" type="int" value="500" />
+        <param name="image_topic" type="string" value="/image_raw" />
+        <param name="sonar_topic" type="string" value="/sonar_image_gray" />
+        <param name="image_transport" type="string" value="raw" />
+        <param name="sonar_transport" type="string" value="raw" />
+        <param name="descriptors_topic" type="string" value="/descriptors" />
+        <param name="keypoints_topic" type="string" value="/image_keypoints" />
+        <param name="frames_to_jump" type="int" value="5" />
+        <param name="source" type="string" value="sonar" />
+        <param name="sonar_mask" type="string" value="$(find dolphin_slam)/config/sonar_mask2.jpg" />
+    </node>
+
+
+	<!-- local view node  -->
+    <node pkg="dolphin_slam" type="local_view_node" name="local_view_node" required="true">
+		<param name="descriptors_topic" type="string" value="/descriptors" />
+		<param name="matching_algorithm" type="string" value="fabmap" />		
+		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />		
+		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
+		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
+		<param name="bow_vocab" type="string" value="$$(arg vocabulary_path)bow_vocab.xml" />
+		<param name="similarity_threshold" type="double" value="0.65" />
+    </node>
+
+   <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">
+        <param name="dvl_topic" type="string" value="/dvl" />
+        <param name="imu_topic" type="string" value="/imu" />
+        <param name="base_frame" type="string" value="/base" />
+        <param name="dvl_position/x" type="double" value="0" />
+		<param name="dvl_position/y" type="double" value="0" />
+		<param name="dvl_position/z" type="double" value="0" />
+		<param name="dvl_orientation/r" type="double" value="0" />
+		<param name="dvl_orientation/p" type="double" value="0" />
+        <param name="dvl_orientation/y" type="double" value="0"/>
+    </node>
+
+    <node name="place_cell_node" pkg="dolphin_slam" type="place_cell_node" required="true">
+        <param name="neurons_per_dimension" type="int" value="15"/>
+        <param name="neurons_step" type="double" value="0.25" />
+		<param name="recurrent_connection_std" type="int" value="3" />
+        <param name="input_learning_rate" type="double" value="0.65" />
+        <param name="min_input_age" type="int" value="10" />
+		<param name="local_view_activation" type="string" value="single" />
+		<param name="weight_function" type="string" value="mexican_hat" />
+    </node>
+
+    <node name="experience_map_node" pkg="dolphin_slam" type="experience_map_node" required="true">
+        <param name="match_threshold" type="double" value="0.75" />
+        <param name="lv_factor" type="double" value="0.5" />
+        <param name="pc_factor" type="double" value="0.5" />
+        <param name="min_experience_age" type="int" value="5" />
+        <param name="focal_lenght" type="double" value="1501.2" />
+    </node>
+
+    <!-- Visualization tools -->
+    <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
+    <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="false"/>
+	<node name="image_view" pkg="image_view" type="image_view" args="image:=/uwsim/camera1 compressed"  respawn="true"/>
+
+</launch>

@@ -4,6 +4,7 @@
 #include <opencv/cv.h>
 #include <dolphin_slam/Descriptors.h>
 #include <ros/ros.h>
+#include <fstream>
 
 
 struct BoWTrainingParameters
@@ -17,6 +18,8 @@ class BoWTraining
 {
 public:
     BoWTraining();
+
+    ~BoWTraining();
 
     void loadParameters();
 

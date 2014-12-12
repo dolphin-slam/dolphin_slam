@@ -15,6 +15,36 @@ BoWTraining::BoWTraining()
 
 }
 
+BoWTraining::~BoWTraining()
+{
+    std::ofstream descriptors_file("descriptors.txt");
+
+    for(int i=0; i<surf_descriptors_.size();i++)
+    {
+        for(int j=0;j<surf_descriptors_[i].rows;j++)
+        {
+            for(int k=0;k<surf_descriptors_[i].cols;k++)
+            {
+                descriptors_file << surf_descriptors_[i].at<float>(j,k) << " ";
+            }
+            descriptors_file << std::endl;
+        }
+    }
+    descriptors_file.close();
+
+    std::ofstream vocab_file("vocabulary.txt");
+
+    for(int j=0;j<bow_vocabulary_.rows;j++)
+    {
+        for(int k=0;k<bow_vocabulary_.cols;k++)
+        {
+            vocab_file << bow_vocabulary_.at<float>(j,k) << " ";
+        }
+        vocab_file << std::endl;
+    }
+    vocab_file.close();
+}
+
 void BoWTraining::loadParameters()
 {
     ros::NodeHandle private_nh_("~");
@@ -61,7 +91,6 @@ void BoWTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr &m
         surf_descriptors_.push_back(descriptors);
 
         bow_trainer_->add(descriptors);
-
     }
 
     timeout_.start();

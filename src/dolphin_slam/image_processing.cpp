@@ -116,7 +116,7 @@ bool ImageProcessing::init()
     {
         surf_ = new cv::SURF(parameters_.surf_threshold_);
 
-//        surf_ = new cv::SURF(parameters_.surf_threshold_,1,1);
+        //        surf_ = new cv::SURF(parameters_.surf_threshold_,1,1);
 
         sonar_mask_ = cv::imread(parameters_.sonar_mask_,CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -158,6 +158,7 @@ void ImageProcessing::publishDescriptors()
     msg.descriptor_count_ = descriptors_.rows;
     msg.descriptor_length_ = descriptors_.cols;
     msg.data_.resize(descriptors_.rows*descriptors_.cols);
+
     std::copy(descriptors_.begin<float>(),descriptors_.end<float>(),msg.data_.begin());
     descriptors_publisher_.publish(msg);
 
@@ -231,11 +232,7 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
                     {
                         sonar_gray.at<unsigned char>(i,j) = static_cast<unsigned char>(pixel_f*255.0);
                     }
-
-
-
                 }
-
             }
 
             cv::threshold(sonar_gray,sonar_gray,1,255,CV_THRESH_BINARY);
@@ -245,18 +242,17 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 
             computeShapeDescriptors(sonar_gray);
 
-//            //! Detect SURF keypoints in the image
-//            surf_->detect(image_->image,keypoints_);
-//            //! Compute SURF descriptors
-//            surf_->compute(image_->image,keypoints_,descriptors_);
+            //            //! Detect SURF keypoints in the image
+            //            surf_->detect(image_->image,keypoints_);
+            //            //! Compute SURF descriptors
+            //            surf_->compute(image_->image,keypoints_,descriptors_);
 
-//            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
+            //            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
 
-//            image_buffer_.push(make_pair(msg->header.seq,image_->image));
+            //            image_buffer_.push(make_pair(msg->header.seq,image_->image));
 
-           publishDescriptors();
 
-           publishImageKeypoints();
+            publishImageKeypoints();
 
         }
     }
@@ -270,36 +266,55 @@ bool ImageProcessing::computeShapeDescriptors(cv::Mat &image)
     vector<vector<cv::Point> > contour;
     vector<cv::Vec4i> hierarchy;
     cv::Moments mm;
+    double hu[7];
+
+    std::vector <std::vector<float> > hu_descriptors;
+
+    int valid_contours = 0;
 
     cv::findContours(image, contour,hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
-    descriptors_.create(contour.size(),2,CV_32F);
+
+    hu_descriptors.resize(contour.size(),std::vector<float>(7));
 
     keypoints_.resize(contour.size());
 
     for( int i = 0; i< contour.size(); i++ )
     {
-        mm = moments(contour[i]);
-        float w1 =0 ;
-        float w2 = 0;
-        if (mm.m00 != 0){
-           w1= mm.mu20/mm.m00;
-           w2 = mm.mu02/mm.m00;
+        mm = cv::moments(contour[i]);
+        //        float w1 =0 ;
+        //        float w2 = 0;
+        if ( mm.m00 > 10){
+            //           w1= mm.mu20/mm.m00;
+            //           w2 = mm.mu02/mm.m00;
 
-           keypoints_[i] = cv::KeyPoint(cv::Point(mm.m10/mm.m00,mm.m01/mm.m00),20);
 
-           if(w1 > w2)
-           {
-               descriptors_.at<float>(i,0) = w1;
-               descriptors_.at<float>(i,1) = w2;
-           }
-           else
-           {
-               descriptors_.at<float>(i,0) = w2;
-               descriptors_.at<float>(i,1) = w1;
-           }
+
+
+            //           keypoints_[i] = cv::KeyPoint(cv::Point(mm.m10/mm.m00,mm.m01/mm.m00),20);
+            cv::HuMoments(mm,hu);
+
+            //std::cout << "M = " << mm.m00 << " " << mm.m01 << " " << mm.m10 <<  std::endl;
+            //std::cout << "NU = " << mm.nu02 << " " << mm.nu03 << " " << mm.nu11 << " " << mm.nu12 << " " << mm.nu20 << " " << mm.nu21 << " " << mm.nu30 << std::endl;
+            //std::cout << "hu = " ;
+            for( int j = 0; j < 7; j++ )
+            {
+                hu_descriptors[valid_contours][j] = boost::numeric_cast<float>(hu[j]);
+            }
+            valid_contours++;
         }
+    }
 
-     }
+    descriptors_.create(valid_contours,7,CV_32F);
+    for(int i=0;i<descriptors_.rows;i++)
+    {
+        for(int j=0;j<descriptors_.cols;j++)
+        {
+            descriptors_.at<float>(i,j) = hu_descriptors[i][j];
+        }
+    }
+    if(descriptors_.rows > 0)
+        publishDescriptors();
+
 }
 
 bool ImageProcessing::imageRequest(dolphin_slam::ImageRequest::Request  &req,
