@@ -32,6 +32,7 @@ RobotState::RobotState(): tf_listener_(buffer_)
 
 
 
+
 void RobotState::loadParameters()
 {
 
@@ -42,12 +43,16 @@ void RobotState::loadParameters()
 
     private_nh.param<std::string>("base_frame", parameters_.base_frame_, "girona500");
 
-    private_nh.param<double>("dvl_position/x",parameters_.dvl_position_[0],0);
-    private_nh.param<double>("dvl_position/y",parameters_.dvl_position_[1],0);
-    private_nh.param<double>("dvl_position/z",parameters_.dvl_position_[2],0);
-    private_nh.param<double>("dvl_orientation/r",parameters_.dvl_orientation_[0],0);
-    private_nh.param<double>("dvl_orientation/p",parameters_.dvl_orientation_[1],0);
-    private_nh.param<double>("dvl_orientation/y",parameters_.dvl_orientation_[2],0);
+    private_nh.param<double>("dvl_position/x",parameters_.dvl_position_[0],0.0);
+    private_nh.param<double>("dvl_position/y",parameters_.dvl_position_[1],0.0);
+    private_nh.param<double>("dvl_position/z",parameters_.dvl_position_[2],0.0);
+    private_nh.param<double>("dvl_orientation/r",parameters_.dvl_orientation_[0],0.0);
+    private_nh.param<double>("dvl_orientation/p",parameters_.dvl_orientation_[1],0.0);
+    private_nh.param<double>("dvl_orientation/y",parameters_.dvl_orientation_[2],0.0);
+
+    std::cout << "dvl_pos = " << parameters_.dvl_position_[0] << " " << parameters_.dvl_position_[1] << " " << parameters_.dvl_position_[2] << std::endl;
+    std::cout << "dvl_ori = " << parameters_.dvl_orientation_[0] << " " << parameters_.dvl_orientation_[1] << " " << parameters_.dvl_orientation_[2] << std::endl;
+
 }
 
 void RobotState::createROSSubscribers()

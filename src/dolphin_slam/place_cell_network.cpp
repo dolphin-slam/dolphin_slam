@@ -273,18 +273,52 @@ void PlaceCellNetwork::update()
 {
     time_monitor_.start();
 
+
+//    std::cout << "Before excite: ";
+//    BOOST_FOREACH(double &neuron,neurons_)
+//    {
+//        std::cout << neuron << " ";
+
+//    }
+//    std::cout << std::endl;
+
     //! excita a rede com uma função de ativação do tipo chapéu mexicano
     excite();
+//    std::cout << "After excite: ";
+//    BOOST_FOREACH(double &neuron,neurons_)
+//    {
+//        std::cout << neuron << " ";
+
+//    }
+//    std::cout << std::endl;
+
+    //! normaliza a atividade na rede
+    normalizeNetworkActivity();
+
 
     //! realiza a integração de caminho na cann
     pathIntegration();
+
+//    std::cout << "After integration: ";
+//    BOOST_FOREACH(double &neuron,neurons_)
+//    {
+//        std::cout << neuron << " ";
+//    }
+//    std::cout << std::endl;
 
     //! normaliza a atividade na rede
     normalizeNetworkActivity();
 
     externalInput();
+//    std::cout << "After external input: ";
+//    BOOST_FOREACH(double &neuron,neurons_)
+//    {
+//        std::cout << neuron << " ";
 
-//    //! normaliza a atividade na rede
+//    }
+//    std::cout << std::endl;
+
+    //! normaliza a atividade na rede
     normalizeNetworkActivity();
 
     //! publica as mensagens de saída
@@ -356,7 +390,7 @@ void PlaceCellNetwork::excite()
     int i,j,k;    //! indices da matriz de neuronios
     int ai,aj,ak;    //! indices da matriz de pesos
 
-    int distances[4];
+    int distances[DIMS];
     int less,bigger;
 
 
@@ -408,6 +442,14 @@ void PlaceCellNetwork::excite()
         }
     }
 
+    std::cout << "Aux Neurons: ";
+    BOOST_FOREACH(double &neuron,aux_neurons_)
+    {
+        std::cout << neuron << " ";
+
+    }
+    std::cout << std::endl;
+
     //! adiciona a ativação atual dos neurônios com a excitação recorrente
     //! para cada neuronio da matriz
     for(i=0;i<parameters_.number_of_neurons_[0];i++)
@@ -426,6 +468,14 @@ void PlaceCellNetwork::excite()
         }
     }
 
+    std::cout << "Neurons: ";
+    BOOST_FOREACH(double &neuron,neurons_)
+    {
+        std::cout << neuron << " ";
+
+    }
+    std::cout << std::endl;
+
 
     time_monitor_.finish();
     ROS_DEBUG_STREAM("Excite duration " << time_monitor_.getDuration() << "s");
@@ -438,8 +488,6 @@ void PlaceCellNetwork::externalInput()
 
     //! Hebbian Learning
     learnExternalConnections();
-
-    double external_input;
 
 
     if(parameters_.local_view_activation_ == "multiple")
@@ -465,6 +513,7 @@ void PlaceCellNetwork::externalInput()
             ROS_DEBUG_STREAM("Local view cell age = " << local_view_age);
 
             //! apply external inputs
+            std::cout << local_view_synaptic_weights_.size() << "- SYNAPTIC WEIGHTS SIZE" << std::endl;
             neurons_ += local_view_synaptic_weights_[most_active_lv_cell_];
         }
     }
@@ -820,8 +869,20 @@ void PlaceCellNetwork::normalizeNetworkActivity()
 {
     double max = *std::max_element(neurons_.begin(),neurons_.end());
 
+    BOOST_FOREACH(double &neuron,neurons_)
+    {
+//        std::cout << "( " <<neuron << " ; ";
+        neuron = neuron/max;
+//        std::cout << neuron << ")";
 
-    neurons_ /= max;
+    }
+
+    if (std::isnan(max))
+    {
+        exit(1);
+    }
+    //neurons_ /= max;
+
 
     std::cout << "max activity = " << max << std::endl;
     //    float sum = std::accumulate(neurons_.begin(),neurons_.end(),0.0f);

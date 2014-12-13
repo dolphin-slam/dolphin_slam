@@ -161,7 +161,6 @@ void ImageProcessing::publishDescriptors()
 
     std::copy(descriptors_.begin<float>(),descriptors_.end<float>(),msg.data_.begin());
     descriptors_publisher_.publish(msg);
-
 }
 
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)

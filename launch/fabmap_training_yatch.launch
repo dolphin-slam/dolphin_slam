@@ -21,7 +21,7 @@
         <param name="sonar_transport" type="string" value="raw" />
         <param name="descriptors_topic" type="string" value="/descriptors" />
         <param name="keypoints_topic" type="string" value="/image_keypoints" />
-        <param name="frames_to_jump" type="int" value="50" />
+        <param name="frames_to_jump" type="int" value="20" />
         <param name="source" type="string" value="sonar" />
         <param name="sonar_mask" type="string" value="$(find dolphin_slam)/config/sonar_mask2.jpg" />
     </node>
@@ -37,7 +37,7 @@
         <param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />
         <param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>
         <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
-       	<param name="cluster_size" type="double" value="0.4" />		
+        <param name="cluster_size" type="double" value="0.25" />
     </node>
 	
 </launch>

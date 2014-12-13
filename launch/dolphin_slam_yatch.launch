@@ -4,7 +4,7 @@
     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
 
 	<!-- Name of bag file -->
-    <arg name="bagfile" default="/mnt/Dados/Yacht_05_12_2014/bags/yatch_cortado.bag"/>
+    <arg name="bagfile" default="/mnt/Dados/Yacht_05_12_2014/bags/yatch_cortado_novo.bag"/>
 
 	<!-- Vocabulary path. The path must end with an "/" -->
     <arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/yatch/training/"/>
@@ -37,7 +37,7 @@
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
 		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
 		<param name="bow_vocab" type="string" value="$$(arg vocabulary_path)bow_vocab.xml" />
-		<param name="similarity_threshold" type="double" value="0.65" />
+        <param name="similarity_threshold" type="double" value="0.25" />
     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">
@@ -56,7 +56,7 @@
         <param name="neurons_per_dimension" type="int" value="15"/>
         <param name="neurons_step" type="double" value="0.25" />
 		<param name="recurrent_connection_std" type="int" value="3" />
-        <param name="input_learning_rate" type="double" value="0.65" />
+        <param name="input_learning_rate" type="double" value="0.6" />
         <param name="min_input_age" type="int" value="10" />
 		<param name="local_view_activation" type="string" value="single" />
 		<param name="weight_function" type="string" value="mexican_hat" />
@@ -66,7 +66,7 @@
         <param name="match_threshold" type="double" value="0.75" />
         <param name="lv_factor" type="double" value="0.5" />
         <param name="pc_factor" type="double" value="0.5" />
-        <param name="min_experience_age" type="int" value="5" />
+        <param name="min_experience_age" type="int" value="50" />
         <param name="focal_lenght" type="double" value="1501.2" />
     </node>
 

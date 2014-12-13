@@ -551,11 +551,11 @@ void ExperienceMap::publishExperienceMap()
     foreach (LinkDescriptor l, boost::edges(map_)){
         e1 = boost::source(l, map_);
         e2 = boost::target(l, map_);
-        std::cout << " ( " << map_[e1].id_ << " , " << map_[e2].id_ << " ) \t\t";
+        //std::cout << " ( " << map_[e1].id_ << " , " << map_[e2].id_ << " ) \t\t";
 
         point = map_[e1].pose_.getOrigin();
 
-        std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " ) \t\t";
+        //std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " ) \t\t";
 
         message.points[i].x = point.x();
         message.points[i].y = point.y();
@@ -563,7 +563,7 @@ void ExperienceMap::publishExperienceMap()
         i++;
         point = map_[e2].pose_.getOrigin();
 
-        std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " )" << std::endl;
+        //std::cout << " ( " << point.x() << " , " << point.y() << " , " << point.z() << " )" << std::endl;
 
         message.points[i].x = point.x();
         message.points[i].y = point.y();
