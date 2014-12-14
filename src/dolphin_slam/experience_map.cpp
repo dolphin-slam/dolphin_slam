@@ -427,8 +427,8 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     time_monitor_.finish();
 
-    //    calculeExperienceMapError();
-    //    calculeDeadReckoningError();
+    calculeExperienceMapError();
+    calculeDeadReckoningError();
     //    calculeLocalisationError();
 
     publishExperienceMap();
@@ -465,11 +465,25 @@ void ExperienceMap::publishExecutionTime()
 
 void ExperienceMap::calculeDeadReckoningError()
 {
+    tf2::Vector3 point = map_[current_experience_descriptor_].dr_pose_.getOrigin();
+    tf2::Vector3 point_gt = map_[current_experience_descriptor_].gt_pose_.getOrigin();
+
+    dead_reckoning_independent_error_.x = point.x() - point_gt.x();
+    dead_reckoning_independent_error_.y = point.y() - point_gt.y();
+    dead_reckoning_independent_error_.z = point.z() - point_gt.z();
+    dead_reckoning_error_ = sqrt(pow(dead_reckoning_independent_error_.x,2) + pow(dead_reckoning_independent_error_.y,2) + pow(dead_reckoning_independent_error_.z,2));
 
 }
 
 void ExperienceMap::calculeExperienceMapError()
 {
+    tf2::Vector3 point = map_[current_experience_descriptor_].pose_.getOrigin();
+    tf2::Vector3 point_gt = map_[current_experience_descriptor_].gt_pose_.getOrigin();
+
+    experience_map_independent_error_.x = point.x() - point_gt.x();
+    experience_map_independent_error_.y = point.y() - point_gt.y();
+    experience_map_independent_error_.z = point.z() - point_gt.z();
+    experience_map_error_ = sqrt(pow(experience_map_independent_error_.x,2) + pow(experience_map_independent_error_.y, 2) + pow(experience_map_independent_error_.z, 2));
 
 }
 

@@ -5,6 +5,7 @@
 const float ROS_TIMER_STEP = 0.25;
 
 using std::endl;
+using std::cout;
 
 namespace dolphin_slam
 {
@@ -134,7 +135,7 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
 {
 
 
-    ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_);
+    ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_ << " Number of descriptors = "  << msg->descriptor_count_);
 
 
     if(metrics_.creation_count_ == 0)
@@ -153,11 +154,13 @@ void LocalViewModule::descriptors_callback(const DescriptorsConstPtr &msg)
     cv::Mat_<float> descriptors(msg->descriptor_count_,msg->descriptor_length_);
     std::copy(msg->data_.begin(),msg->data_.end(),descriptors.begin());
 
+
     computeImgDescriptor(descriptors);
 
-    ROS_DEBUG_STREAM("Descriptors received. seq = " << msg->image_seq_);
+    cout << bow_current_descriptor_ << endl;
 
     computeMatches();
+
 
     time_monitor_.finish();
 
@@ -251,7 +254,7 @@ void LocalViewModule::publishExecutionTime()
 
 void LocalViewModule::computeCorrelations()
 {
-    new_place_ = false;
+    new_place_ = true;
 
     std::vector<LocalViewCell>::iterator cell_iterator_;
     std::vector<LocalViewCell>::iterator best_match;
@@ -263,7 +266,10 @@ void LocalViewModule::computeCorrelations()
         //! test activation against a similarity threshold;
         cell_iterator_->active_ = (cell_iterator_->rate_ > parameters_.similarity_threshold_);
 
-        new_place_ = new_place_ || cell_iterator_->active_;
+        if(cell_iterator_->active_)
+        {
+            new_place_ = false;
+        }
 
         //! compute best match
         if(best_match->rate_ < cell_iterator_->rate_)

@@ -1,0 +1,39 @@
+<launch>
+
+	<!-- Change ROS logger levels -->
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find dolphin_slam)/config/custom_rosconsole.conf"/>
+
+	<!-- Name of bag file -->
+	<arg name="bagfile" default="$(find dolphin_slam)/experiments/pool_loop/training/training.bag"/>
+
+	<!-- Vocabulary path -->
+	<arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/pool_loop/training/"/>
+
+	<!-- Play messages from bagfile -->
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3" required="false"/>
+	
+	<!-- process images to extract surf keypoints -->
+    <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
+       	<param name="surf_threshold" type="int" value="100" />		
+		<param name="image_topic" type="string" value="/image" />		
+		<param name="image_transport" type="string" value="raw" />		
+		<param name="descriptors_topic" type="string" value="/descriptors" />		
+		<param name="keypoints_topic" type="string" value="/image_keypoints" />
+		<param name="frames_to_jump" type="int" value="50" />
+    </node>
+
+	<!-- view surf keypoints plotted on image  -->
+    <node pkg="image_view" type="image_view" name="keypoints_view" args="image:=/image_keypoints" respawn="false"/>
+
+	<!-- train fabmap algorithm  -->
+    <node pkg="dolphin_slam" type="bow_training" name="bow_training" required="true">
+		<param name="descriptors_topic" type="string" value="/descriptors" />		
+		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />		
+       	<param name="cluster_count" type="int" value="500" />		
+    </node>
+
+	<!-- record topic messages on a bag file  -->
+    <node pkg="rosbag" type="record" name="record" args="\descriptors \image_keypoints -o fabmap_training" required="false"/>
+	
+</launch>
+

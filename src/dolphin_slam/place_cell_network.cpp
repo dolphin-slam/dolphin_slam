@@ -442,13 +442,6 @@ void PlaceCellNetwork::excite()
         }
     }
 
-    std::cout << "Aux Neurons: ";
-    BOOST_FOREACH(double &neuron,aux_neurons_)
-    {
-        std::cout << neuron << " ";
-
-    }
-    std::cout << std::endl;
 
     //! adiciona a ativação atual dos neurônios com a excitação recorrente
     //! para cada neuronio da matriz
@@ -467,14 +460,6 @@ void PlaceCellNetwork::excite()
             }
         }
     }
-
-    std::cout << "Neurons: ";
-    BOOST_FOREACH(double &neuron,neurons_)
-    {
-        std::cout << neuron << " ";
-
-    }
-    std::cout << std::endl;
 
 
     time_monitor_.finish();
@@ -877,10 +862,12 @@ void PlaceCellNetwork::normalizeNetworkActivity()
 
     }
 
+    /*
     if (std::isnan(max))
     {
         exit(1);
     }
+    */
     //neurons_ /= max;
 
 

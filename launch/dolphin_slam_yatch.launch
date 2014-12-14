@@ -55,8 +55,8 @@
     <node name="place_cell_node" pkg="dolphin_slam" type="place_cell_node" required="true">
         <param name="neurons_per_dimension" type="int" value="15"/>
         <param name="neurons_step" type="double" value="0.25" />
-		<param name="recurrent_connection_std" type="int" value="3" />
-        <param name="input_learning_rate" type="double" value="0.6" />
+		<param name="recurrent_connection_std" type="double" value="2" />
+        <param name="input_learning_rate" type="double" value="0.2" />
         <param name="min_input_age" type="int" value="10" />
 		<param name="local_view_activation" type="string" value="single" />
 		<param name="weight_function" type="string" value="mexican_hat" />

@@ -21,6 +21,7 @@
 		<param name="image_transport" type="string" value="compressed" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
+        <param name="source" type="string" value="camera" />
 		<param name="frames_to_jump" type="int" value="5" />
     </node>
 
@@ -51,7 +52,7 @@
         <param name="neurons_per_dimension" type="int" value="15"/>
         <param name="neurons_step" type="double" value="0.15" />
 		<param name="recurrent_connection_std" type="int" value="3" />
-        <param name="input_learning_rate" type="double" value="0.85" />
+        <param name="input_learning_rate" type="double" value="0.6" />
         <param name="min_input_age" type="int" value="10" />
 		<param name="local_view_activation" type="string" value="single" />
 		<param name="weight_function" type="string" value="mexican_hat" />
