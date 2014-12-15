@@ -21,7 +21,7 @@
 		<param name="sonar_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-        <param name="frames_to_jump" type="int" value="10" />
+        <param name="frames_to_jump" type="int" value="20" />
 		<param name="source" type="string" value="sonar" />
 		<param name="sonar_mask" type="string" value="$(find dolphin_slam)/config/sonar_mask2.jpg" />
     </node>

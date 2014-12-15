@@ -19,7 +19,7 @@
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-		<param name="frames_to_jump" type="int" value="50" />
+		<param name="frames_to_jump" type="int" value="20" />
     </node>
 
 	<!-- view surf keypoints plotted on image  -->
@@ -29,7 +29,7 @@
     <node pkg="dolphin_slam" type="bow_training" name="bow_training" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />		
-       	<param name="cluster_count" type="int" value="500" />		
+       	<param name="cluster_count" type="int" value="200" />		
     </node>
 
 	<!-- record topic messages on a bag file  -->
