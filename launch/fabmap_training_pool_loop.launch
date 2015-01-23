@@ -35,7 +35,7 @@
     </node>
 
 	<!-- record topic messages on a bag file  -->
-    <node pkg="rosbag" type="record" name="record" args="\descriptors \image_keypoints -o fabmap_training" required="false"/>
+    <!-- node pkg="rosbag" type="record" name="record" args="\descriptors \image_keypoints -o fabmap_training" required="false"/ -->
 	
 </launch>
 

@@ -20,7 +20,6 @@ FabmapTraining::FabmapTraining()
 
 }
 
-
 void FabmapTraining::loadParameters()
 {
     ros::NodeHandle private_nh_("~");
@@ -99,11 +98,47 @@ void FabmapTraining::train(const ros::TimerEvent &)
 }
 
 
+void FabmapTraining::trainOnlyBow(const ros::TimerEvent &)
+{
+
+    ROS_DEBUG_STREAM("Start training");
+
+    std::cout << "start training" << std::endl;
+
+    ROS_DEBUG_STREAM("Number of images: " << surf_descriptors_.size());
+
+    bow_vocabulary_ = bow_trainer_->cluster();
+
+    std::cout << "Vocabulary trained" << std::endl;
+
+    computeBoWIntegerDescriptors();
+
+    storeTrainingData();
+
+    storeOXV();
+
+    storeOXS();
+
+    ROS_DEBUG_STREAM("Finish training");
+
+    ros::requestShutdown();
+}
+
+void FabmapTraining::storeOXS()
+{
+
+}
+
+void FabmapTraining::storeOXV()
+{
+
+}
+
 void FabmapTraining::computeBoWDescriptors()
 {
     //! Compute BoW descriptors
 
-    BOWImgDescriptorExtractor extractor(cv::DescriptorMatcher::create("FlannBased")); //! \todo Usar a versao do opencv ao atualizar para o opencv 3.0
+    BOWImgDescriptorExtractor extractor(cv::DescriptorMatcher::create("FlannBased"));
     cv::Mat image_descriptor;
 
     extractor.setVocabulary(bow_vocabulary_);
@@ -111,10 +146,27 @@ void FabmapTraining::computeBoWDescriptors()
 
     for(int i=0;i<surf_descriptors_.size();i++)
     {
-        extractor.compute(surf_descriptors_[i],image_descriptor);
+        extractor.computeBow(surf_descriptors_[i],image_descriptor);
 
         bow_descriptors_.push_back(image_descriptor);
+    }
+}
 
+void FabmapTraining::computeBoWIntegerDescriptors()
+{
+    //! Compute BoW descriptors
+
+    BOWImgDescriptorExtractor extractor(cv::DescriptorMatcher::create("FlannBased"));
+    cv::Mat image_descriptor;
+
+    extractor.setVocabulary(bow_vocabulary_);
+
+
+    for(int i=0;i<surf_descriptors_.size();i++)
+    {
+        extractor.computeBowInteger(surf_descriptors_[i],image_descriptor);
+
+        bow_descriptors_.push_back(image_descriptor);
     }
 }
 

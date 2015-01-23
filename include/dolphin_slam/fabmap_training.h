@@ -37,6 +37,9 @@ public:
     void computeBoWDescriptors();
     void storeTrainingData();
 
+    void storeOXV();
+    void storeOXS();
+
 private:
 
     ros::NodeHandle node_handle_;

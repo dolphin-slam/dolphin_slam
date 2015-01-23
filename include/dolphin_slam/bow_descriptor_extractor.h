@@ -28,6 +28,7 @@ public:
     const cv::Mat& getVocabulary() const;
     void compute( const cv::Mat& descriptors, cv::Mat& imgDescriptor,
                   vector<vector<int> >* pointIdxsOfClusters=0);
+    void computeBowFabmap(const cv::Mat &descriptors, cv::Mat &imgDescriptor, vector<vector<int> > *pointIdxsOfClusters);
     // compute() is not constant because DescriptorMatcher::match is not constant
 
     int descriptorSize() const;

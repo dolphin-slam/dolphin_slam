@@ -33,7 +33,7 @@
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
 		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
 		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
-		<param name="similarity_threshold" type="double" value="0.75" />
+		<param name="similarity_threshold" type="double" value="0.55" />
     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">

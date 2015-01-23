@@ -55,7 +55,7 @@ void BOWImgDescriptorExtractor::compute( const cv::Mat& descriptors, cv::Mat& im
     imgDescriptor /= descriptors.rows;
 }
 
-void BOWImgDescriptorExtractor::computeBowFabmap( const cv::Mat& descriptors, cv::Mat& imgDescriptor,
+void BOWImgDescriptorExtractor::computeBowInteger( const cv::Mat& descriptors, cv::Mat& imgDescriptor,
                                          vector<vector<int> >* pointIdxsOfClusters)
 {
     imgDescriptor.release();
@@ -88,7 +88,6 @@ void BOWImgDescriptorExtractor::computeBowFabmap( const cv::Mat& descriptors, cv
         if( pointIdxsOfClusters )
             (*pointIdxsOfClusters)[trainIdx].push_back( queryIdx );
     }
-
 }
 
 
