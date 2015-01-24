@@ -41,7 +41,7 @@ void FabmapTraining::loadParameters()
 
     private_nh_.param<std::string>("clustering_algorithm",parameters_.clustering_algorithm_,"radial");
 
-    private_nh_.param<std::string>("fabmap_implementation",parameters_.fabmap_implementation_,"official");
+    private_nh_.param<std::string>("fabmap_implementation",parameters_.fabmap_implementation_,"original");
 
     private_nh_.param<std::string>("dataset_name",parameters_.dataset_name_,"dataset");
 
@@ -56,13 +56,13 @@ void FabmapTraining::createROSSubscribers()
 void FabmapTraining::createROSTimers()
 {
 
-    if(parameters_.fabmap_implementation_ == "official")
+    if(parameters_.fabmap_implementation_ == "original")
     {
-        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::trainOnlyBow,this,true,false);
+        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::trainOriginal,this,true,false);
     }
     else if (parameters_.fabmap_implementation_ == "open")
     {
-        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::train,this,true,false);
+        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::trainOpen,this,true,false);
     }
 }
 
@@ -105,7 +105,7 @@ void FabmapTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr
 }
 
 
-void FabmapTraining::train(const ros::TimerEvent &)
+void FabmapTraining::trainOpen(const ros::TimerEvent &)
 {
 
     ROS_DEBUG_STREAM("Start training BoW vocabulary and Chow Liu Tree ...");
@@ -132,7 +132,7 @@ void FabmapTraining::train(const ros::TimerEvent &)
 }
 
 
-void FabmapTraining::trainOnlyBow(const ros::TimerEvent &)
+void FabmapTraining::trainOriginal(const ros::TimerEvent &)
 {
 
     ROS_DEBUG_STREAM("Start training BoW vocabulary...");

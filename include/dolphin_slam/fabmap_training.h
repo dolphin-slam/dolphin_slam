@@ -36,9 +36,9 @@ public:
 
     void init();
 
-    void train(const ros::TimerEvent&);
+    void trainOpen(const ros::TimerEvent&);
 
-    void trainOnlyBow(const ros::TimerEvent &);
+    void trainOriginal(const ros::TimerEvent &);
     void trainBoW();
     void trainChowLiuTree();
     void computeBoWDescriptors();

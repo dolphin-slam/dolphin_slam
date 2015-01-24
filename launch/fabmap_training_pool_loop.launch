@@ -34,7 +34,7 @@
         <param name="cluster_size" type="double" value="0.4" />
         <param name="cluster_count" type="int" value="1000" />
         <param name="clustering_algorithm" type="string" value="kmeans" />        
-        <param name="fabmap_implementation" type="string" value="official" />        
+        <param name="fabmap_implementation" type="string" value="open" />        
         <param name="dataset_name" type="string" value="$(arg vocabulary_path)pool_loop" />
     </node>
 
