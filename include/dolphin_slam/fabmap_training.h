@@ -5,6 +5,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/contrib/openfabmap.hpp>
 #include <dolphin_slam/Descriptors.h>
+#include <fstream>
+#include <string>
 
 namespace dolphin_slam
 {
@@ -16,6 +18,10 @@ struct FabmapTrainingParameters
     double cluster_size_;
     std::string descriptors_topic_;
     std::string fabmap_vocab_;
+    int cluster_count_;
+    std::string clustering_algorithm_;
+    std::string fabmap_implementation_;
+    std::string dataset_name_;
 };
 
 class FabmapTraining
@@ -32,6 +38,7 @@ public:
 
     void train(const ros::TimerEvent&);
 
+    void trainOnlyBow(const ros::TimerEvent &);
     void trainBoW();
     void trainChowLiuTree();
     void computeBoWDescriptors();
@@ -40,6 +47,7 @@ public:
     void storeOXV();
     void storeOXS();
 
+    void computeBoWIntegerDescriptors();
 private:
 
     ros::NodeHandle node_handle_;

@@ -4,6 +4,9 @@
 #include <boost/foreach.hpp>
 #include <iostream>
 
+
+using std::endl;
+
 namespace dolphin_slam
 {
 
@@ -33,6 +36,16 @@ void FabmapTraining::loadParameters()
     private_nh_.param<std::string>("fabmap_descriptors",parameters_.fabmap_descriptors_,"descriptors.xml");
 
     private_nh_.param<double>("cluster_size",parameters_.cluster_size_,0.4);
+
+    private_nh_.param<int>("cluster_count",parameters_.cluster_count_,100);
+
+    private_nh_.param<std::string>("clustering_algorithm",parameters_.clustering_algorithm_,"radial");
+
+    private_nh_.param<std::string>("fabmap_implementation",parameters_.fabmap_implementation_,"official");
+
+    private_nh_.param<std::string>("dataset_name",parameters_.dataset_name_,"dataset");
+
+
 }
 
 void FabmapTraining::createROSSubscribers()
@@ -42,12 +55,35 @@ void FabmapTraining::createROSSubscribers()
 
 void FabmapTraining::createROSTimers()
 {
-    timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::train,this,false);
+
+    if(parameters_.fabmap_implementation_ == "official")
+    {
+        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::trainOnlyBow,this,true,false);
+    }
+    else if (parameters_.fabmap_implementation_ == "open")
+    {
+        timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::train,this,true,false);
+    }
 }
 
 void FabmapTraining::init()
 {
-    bow_trainer_ = new cv::of2::BOWMSCTrainer(parameters_.cluster_size_);
+
+    if(parameters_.clustering_algorithm_ == "radial")
+    {
+        ROS_DEBUG_STREAM("clustering algorithm = radial");
+        bow_trainer_ = new cv::of2::BOWMSCTrainer(parameters_.cluster_size_);
+    }
+    else if(parameters_.clustering_algorithm_ == "kmeans")
+    {
+        ROS_DEBUG_STREAM("clustering algorithm = kmeans");
+        bow_trainer_ = new cv::BOWKMeansTrainer(parameters_.cluster_count_,
+                                                cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS,50,0.001),
+                                                3,
+                                                cv::KMEANS_PP_CENTERS);
+    }
+
+
 
     cl_trainer_ = new cv::of2::ChowLiuTree();
 
@@ -72,19 +108,17 @@ void FabmapTraining::descriptorsCallback(const dolphin_slam::DescriptorsConstPtr
 void FabmapTraining::train(const ros::TimerEvent &)
 {
 
-    ROS_DEBUG_STREAM("Start training");
-
-    std::cout << "start training" << std::endl;
+    ROS_DEBUG_STREAM("Start training BoW vocabulary and Chow Liu Tree ...");
 
     ROS_DEBUG_STREAM("Number of images: " << surf_descriptors_.size());
 
     bow_vocabulary_ = bow_trainer_->cluster();
 
-    std::cout << "Vocabulary trained" << std::endl;
+    ROS_DEBUG_STREAM("Vocabulary succesfully trained");
 
     computeBoWDescriptors();
 
-    std::cout << "start chow liu tree" << std::endl ;
+    ROS_DEBUG_STREAM("Start Chow Liu Training");
 
     cl_trainer_->add(bow_descriptors_);
 
@@ -101,15 +135,13 @@ void FabmapTraining::train(const ros::TimerEvent &)
 void FabmapTraining::trainOnlyBow(const ros::TimerEvent &)
 {
 
-    ROS_DEBUG_STREAM("Start training");
-
-    std::cout << "start training" << std::endl;
+    ROS_DEBUG_STREAM("Start training BoW vocabulary...");
 
     ROS_DEBUG_STREAM("Number of images: " << surf_descriptors_.size());
 
     bow_vocabulary_ = bow_trainer_->cluster();
 
-    std::cout << "Vocabulary trained" << std::endl;
+    ROS_DEBUG_STREAM("Vocabulary succesfully trained");
 
     computeBoWIntegerDescriptors();
 
@@ -126,12 +158,55 @@ void FabmapTraining::trainOnlyBow(const ros::TimerEvent &)
 
 void FabmapTraining::storeOXS()
 {
+    std::string filename = parameters_.dataset_name_ +  std::string(".oxs");
+
+
+    std::ofstream file(filename.c_str());
+
+    file << "VOCABULARY:" << parameters_.dataset_name_ + std::string(".oxv") << endl;
+    file << "SCENES:" << bow_descriptors_.size() << endl;
+
+    for(int i=0;i<bow_descriptors_.size();i++)
+    {
+        file << "SCENE:" << endl << endl << endl;
+
+        for(int j=0;j<bow_descriptors_[i].cols;j++)
+        {
+            if( bow_descriptors_[i].at<int>(0,j) != 0 )
+                file << j << " ";
+        }
+        file << endl;
+
+        for(int j=0;j<bow_descriptors_[i].cols;j++)
+        {
+            if( bow_descriptors_[i].at<int>(0,j) != 0 )
+                file << bow_descriptors_[i].at<int>(0,j) << " ";
+        }
+        file << endl;
+    }
 
 }
 
 void FabmapTraining::storeOXV()
 {
+    std::string filename = parameters_.dataset_name_ + std::string(".oxv");
 
+    std::ofstream file(filename.c_str());
+
+    file << "WORDS:" << bow_vocabulary_.rows << endl;
+    file << "CLUSTER_THRESHOLD:" << parameters_.cluster_size_ << endl;
+
+    for(int i=0;i<bow_vocabulary_.rows;i++)
+    {
+        file << "WORD:" << i << endl;
+        for(int j=0;j<bow_vocabulary_.cols;j++)
+        {
+            file << bow_vocabulary_.at<float>(i,j) << " ";
+        }
+        file << endl;
+    }
+
+    file.close();
 }
 
 void FabmapTraining::computeBoWDescriptors()
@@ -146,7 +221,7 @@ void FabmapTraining::computeBoWDescriptors()
 
     for(int i=0;i<surf_descriptors_.size();i++)
     {
-        extractor.computeBow(surf_descriptors_[i],image_descriptor);
+        extractor.compute(surf_descriptors_[i],image_descriptor);
 
         bow_descriptors_.push_back(image_descriptor);
     }

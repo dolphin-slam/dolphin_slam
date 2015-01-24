@@ -187,7 +187,7 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
             //! Compute SURF descriptors
             surf_->compute(image_->image,keypoints_,descriptors_);
 
-            ROS_DEBUG_STREAM("Number of SURF keypoints" << keypoints_.size());
+            ROS_DEBUG_STREAM("Number of SURF keypoints: " << keypoints_.size());
 
             image_buffer_.push(make_pair(msg->header.seq,image_->image));
 

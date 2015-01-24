@@ -14,7 +14,7 @@
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
-       	<param name="surf_threshold" type="int" value="500" />		
+       	<param name="surf_threshold" type="int" value="1000" />		
 		<param name="image_topic" type="string" value="/image" />		
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
@@ -31,7 +31,11 @@
         <param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />
         <param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>
         <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
-       	<param name="cluster_size" type="double" value="0.4" />		
+        <param name="cluster_size" type="double" value="0.4" />
+        <param name="cluster_count" type="int" value="1000" />
+        <param name="clustering_algorithm" type="string" value="kmeans" />        
+        <param name="fabmap_implementation" type="string" value="official" />        
+        <param name="dataset_name" type="string" value="$(arg vocabulary_path)pool_loop" />
     </node>
 
 	<!-- record topic messages on a bag file  -->
