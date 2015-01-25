@@ -36,6 +36,7 @@
         <param name="clustering_algorithm" type="string" value="kmeans" />        
         <param name="fabmap_implementation" type="string" value="open" />        
         <param name="dataset_name" type="string" value="$(arg vocabulary_path)pool_loop" />
+        <param name="dataset_path" type="string" value="$(arg vocabulary_path)" />
     </node>
 
 	<!-- record topic messages on a bag file  -->

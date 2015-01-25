@@ -23,6 +23,21 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+#diretivas para usar o FabMAP oficial no codigo
+add_subdirectory(third_part)
+include_directories(third_part/FabMapCommon/include)
+include_directories(third_part/pAcceleratedChowLiu_CompactMemory/include)
+find_package(VXL REQUIRED )
+if (VXL_FOUND)
+  include(${VXL_CMAKE_DIR}/UseVXL.cmake)
+endif()
+
+SET(pAcceleratedChowLiu_SRCS
+  third_part/pAcceleratedChowLiu_CompactMemory/src/AcceleratedCL.cpp
+)
+
+
+
 find_package(OpenCV REQUIRED)
 
 
@@ -114,6 +129,8 @@ include_directories(
   include/dolphin_slam
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  third_part
+
 )
 
 # Declare a cpp library
@@ -150,10 +167,12 @@ add_executable(fabmap_training
     src/dolphin_slam/bow_descriptor_extractor.cpp
     src/fabmap_training_node.cpp
     src/dolphin_slam/fabmap_training.cpp
+    ${pAcceleratedChowLiu_SRCS}
 )
 target_link_libraries(fabmap_training
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
+    vnl
 )
 
 ### Declare a cpp executable
@@ -211,9 +230,6 @@ add_dependencies(experience_map_node dolphin_slam_generate_messages_cpp)
 add_dependencies(place_cell_node dolphin_slam_generate_messages_cpp)
 add_dependencies(robot_state_node dolphin_slam_generate_messages_cpp)
 
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-#add_dependencies(dolphin_slam_node dolphin_slam_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(dolphin_slam_node

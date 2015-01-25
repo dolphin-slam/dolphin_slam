@@ -28,7 +28,7 @@
 	<!-- local view node  -->
     <node pkg="dolphin_slam" type="local_view_node" name="local_view_node" required="true">
 		<param name="descriptors_topic" type="string" value="/descriptors" />
-		<param name="matching_algorithm" type="string" value="correlation" />		
+        <param name="matching_algorithm" type="string" value="fabmap" />
 		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />		
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
 		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />

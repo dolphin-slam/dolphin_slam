@@ -4,6 +4,7 @@
 #include <boost/foreach.hpp>
 #include <iostream>
 
+#include <pAcceleratedChowLiu_CompactMemory/include/AcceleratedCL.h>
 
 using std::endl;
 
@@ -43,7 +44,9 @@ void FabmapTraining::loadParameters()
 
     private_nh_.param<std::string>("fabmap_implementation",parameters_.fabmap_implementation_,"original");
 
-    private_nh_.param<std::string>("dataset_name",parameters_.dataset_name_,"dataset");
+    private_nh_.param<std::string>("dataset_name",parameters_.dataset_name_,"dataset_path");
+
+    private_nh_.param<std::string>("dataset_path",parameters_.dataset_path_,"dataset");
 
 
 }
@@ -150,6 +153,9 @@ void FabmapTraining::trainOriginal(const ros::TimerEvent &)
     storeOXV();
 
     storeOXS();
+
+    AcceleratedCLCalculator chowLiuCalculator(parameters_.dataset_path_,parameters_.dataset_name_,parameters_.dataset_path_,0.0);
+    chowLiuCalculator.DoCalc();
 
     ROS_DEBUG_STREAM("Finish training");
 

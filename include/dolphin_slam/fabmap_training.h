@@ -22,6 +22,7 @@ struct FabmapTrainingParameters
     std::string clustering_algorithm_;
     std::string fabmap_implementation_;
     std::string dataset_name_;
+    std::string dataset_path_;
 };
 
 class FabmapTraining
