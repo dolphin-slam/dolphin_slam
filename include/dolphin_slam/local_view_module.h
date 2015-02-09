@@ -25,6 +25,10 @@
 
 #include "boost/date_time/gregorian/gregorian.hpp"
 
+#include <fabmap_training.h>
+
+#include <FabMap.h>
+
 
 #define foreach BOOST_FOREACH
 
@@ -39,7 +43,10 @@ struct LocalViewParameters
     std::string fabmap_vocab_;
     std::string fabmap_tree_;
     std::string fabmap_descriptors_;
+    std::string fabmap_algorithm_;
+    std::string fabmap_config_;
     std::string descriptors_topic_;
+
 };
 
 
@@ -98,7 +105,12 @@ private:
     cv::Ptr<BOWImgDescriptorExtractor> bow_extractor_;//! \todo Usar a versao do opencv ao atualizar para o opencv 3.0
     cv::Mat bow_vocabulary_;
 
-    cv::Ptr<cv::of2::FabMap> fabmap_;
+    cv::Ptr<cv::of2::FabMap> fabmap_open_;
+
+    cv::Ptr<FabMapCalculator> fabmap_original_;
+
+    LocationProbabilityContainer computed_location_probability;
+
     cv::Mat cltree_;
     cv::Mat bow_training_descriptors_;
 

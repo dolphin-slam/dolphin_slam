@@ -53,6 +53,11 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("fabmap_descriptors",parameters_.fabmap_descriptors_,"descriptors.xml");
 
+    private_nh.param<std::string>("fabmap_algorithm",parameters_.fabmap_algorithm_,"original");
+
+    private_nh.param<std::string>("fabmap_config",parameters_.fabmap_config_,"fabmap.mooos");
+
+
 }
 
 void LocalViewModule::createROSSubscribers()
@@ -74,27 +79,75 @@ void LocalViewModule::init()
 
     if(parameters_.matching_algorithm_ == "fabmap")
     {
-        fs.open(parameters_.fabmap_vocab_,cv::FileStorage::READ);
-        fs["vocabulary"] >> bow_vocabulary_;
-        fs.release();
+        if(parameters_.fabmap_algorithm_ == "open")
+        {
+            fs.open(parameters_.fabmap_vocab_,cv::FileStorage::READ);
+            fs["vocabulary"] >> bow_vocabulary_;
+            fs.release();
 
-        fs.open(parameters_.fabmap_tree_,cv::FileStorage::READ);
-        fs["tree"] >> cltree_;
-        fs.release();
+            fs.open(parameters_.fabmap_tree_,cv::FileStorage::READ);
+            fs["tree"] >> cltree_;
+            fs.release();
 
-        //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
-        fs.open(parameters_.fabmap_descriptors_,cv::FileStorage::READ);
-        fs["descriptors"] >> bow_training_descriptors_;
-        fs.release();
+            ROS_DEBUG_STREAM("Fabmap algorithm = open = " << parameters_.fabmap_algorithm_);
+
+            //! \todo Transformar em uma matriz primeiro, para depois salvar os valores
+            fs.open(parameters_.fabmap_descriptors_,cv::FileStorage::READ);
+            fs["descriptors"] >> bow_training_descriptors_;
+            fs.release();
 
 
-        bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
-        bow_extractor_->setVocabulary(bow_vocabulary_);
+            bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
+            bow_extractor_->setVocabulary(bow_vocabulary_);
 
-        fabmap_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU,bow_training_descriptors_.rows);
+            fabmap_open_ = new cv::of2::FabMap1(cltree_,0.39,0,cv::of2::FabMap::SAMPLED | cv::of2::FabMap::CHOW_LIU,bow_training_descriptors_.rows);
 
-        fabmap_->addTraining(bow_training_descriptors_);
+            fabmap_open_->addTraining(bow_training_descriptors_);
 
+        }
+        else if (parameters_.fabmap_algorithm_ == "original")
+        {
+            //! Load vocabulary
+            fs.open(parameters_.fabmap_vocab_,cv::FileStorage::READ);
+            fs["vocabulary"] >> bow_vocabulary_;
+            fs.release();
+
+            bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
+            bow_extractor_->setVocabulary(bow_vocabulary_);
+
+            ROS_DEBUG_STREAM("Fabmap algorithm = original = " << parameters_.fabmap_algorithm_);
+            ROS_DEBUG_STREAM("Fabmap config = " << parameters_.fabmap_config_);
+
+
+            string vocab_path, vocabName;
+            double p_observe_given_exists, p_observe_given_not_exists, p_at_new_place, df_likelihood_smoothing_factor;
+            unsigned int vocab_size;
+
+            CProcessConfigReader FileReader;
+            FileReader.SetFile(parameters_.fabmap_config_);
+
+            if (!FileReader.IsOpen()) {
+                ROS_ERROR_STREAM("Could not find config file: " << parameters_.fabmap_config_ );
+            }
+
+
+            FileReader.GetValue("VocabPath", vocab_path);
+            FileReader.GetValue("VocabName", vocabName);
+            FileReader.GetValue("P_OBSERVE_GIVEN_EXISTS", p_observe_given_exists);
+            FileReader.GetValue("P_OBSERVE_GIVEN_NOT_EXISTS", p_observe_given_not_exists);
+            FileReader.GetValue("LIKELIHOOD_SMOOTHING_FACTOR", df_likelihood_smoothing_factor);
+            FileReader.GetValue("P_AT_NEW_PLACE", p_at_new_place);
+
+            ParseOXV_PeekDimensions(vocab_path + vocabName + ".oxv",vocab_size);
+
+            ROS_DEBUG_STREAM("Vocab = " << vocab_path + vocabName);
+
+            fabmap_original_ = new FabMapCalculator(vocab_path, vocabName,
+                                                    p_observe_given_exists, p_observe_given_not_exists,
+                                                    p_at_new_place, vocab_size,df_likelihood_smoothing_factor);
+
+            fabmap_original_->ConfigureForExternalCalls(parameters_.fabmap_config_);
+        }
     }
     else if (parameters_.matching_algorithm_== "correlation")
     {
@@ -293,53 +346,103 @@ void LocalViewModule::computeCorrelations()
 
 void LocalViewModule::computeFabmap()
 {
-    std::vector<cv::of2::IMatch> imatch;
-
-    ROS_DEBUG_STREAM("Compute Fabmap");
 
 
-    fabmap_->compare(bow_current_descriptor_,bow_descriptors_,imatch);
-
-    //! Test for new places
-    std::vector<cv::of2::IMatch>::iterator imatch_iterator, best_match;
-
-    best_match = imatch.begin();
-
-    for(imatch_iterator = imatch.begin();imatch_iterator != imatch.end();imatch_iterator++)
+    if (parameters_.fabmap_algorithm_ == "open")
     {
-        //! test if image index is valid index
-        if(imatch_iterator->imgIdx != -1)
+
+
+        std::vector<cv::of2::IMatch> imatch;
+
+        ROS_DEBUG_STREAM("Compute Fabmap");
+
+        fabmap_open_->compare(bow_current_descriptor_,bow_descriptors_,imatch);
+
+        //! Test for new places
+        std::vector<cv::of2::IMatch>::iterator imatch_iterator, best_match;
+
+        best_match = imatch.begin();
+
+        for(imatch_iterator = imatch.begin();imatch_iterator != imatch.end();imatch_iterator++)
         {
-            //! store the match probability on the cell structure
-            cells_[imatch_iterator->imgIdx].rate_ = imatch_iterator->match;
-            cells_[imatch_iterator->imgIdx].active_ = false;
-        }
-        else
-        {
-            new_rate_ = imatch_iterator->match;
+            //! test if image index is valid index
+            if(imatch_iterator->imgIdx != -1)
+            {
+                //! store the match probability on the cell structure
+                cells_[imatch_iterator->imgIdx].rate_ = imatch_iterator->match;
+                cells_[imatch_iterator->imgIdx].active_ = false;
+            }
+            else
+            {
+                new_rate_ = imatch_iterator->match;
+            }
+
+            //! compute best match
+            if(best_match->match < imatch_iterator->match)
+            {
+                best_match = imatch_iterator;
+            }
+
         }
 
-        //! compute best match
-        if(best_match->match < imatch_iterator->match)
+        ROS_DEBUG_STREAM("Number of stored places: " << imatch.size()-1 << " best match = " << best_match->imgIdx);
+
+        new_place_ = (best_match->imgIdx == -1);
+
+        if(!new_place_)
         {
-            best_match = imatch_iterator;
+            best_match_id_ = best_match->imgIdx;
         }
 
     }
-
-    ROS_DEBUG_STREAM("Number of stored places: " << imatch.size()-1 << " best match = " << best_match->imgIdx);
-
-    new_place_ = (best_match->imgIdx == -1);
-
-    if(!new_place_)
+    else if (parameters_.fabmap_algorithm_ == "original")
     {
-        best_match_id_ = best_match->imgIdx;
+        Observation observation(bow_current_descriptor_.cols);
+        std::copy(bow_current_descriptor_.begin<int>(),bow_current_descriptor_.end<int>(),observation.begin());
+
+        double best_match = 0;
+
+        fabmap_original_->ProcessObservation(observation,computed_location_probability);
+
+        for(int i=0;i<computed_location_probability.size();i++)
+        {
+            if(i < computed_location_probability.size()-1) //new place probability
+            {
+                cells_[i].rate_ = computed_location_probability[i];
+                cells_[i].active_ = false;
+
+                if(computed_location_probability[i] > best_match)
+                {
+                    best_match_id_ = i;
+                    best_match = computed_location_probability[i];
+                }
+
+            }
+            else
+            {
+                new_rate_ = computed_location_probability[i];
+
+                if(new_rate_ > best_match)
+                {
+                    best_match = new_rate_;
+                    new_place_ = true;
+                }
+                else
+                {
+                    new_place_ = false;
+                }
+
+            }
+        }
+
+
+        fabmap_original_->ConfirmLastMatch();
+
+
+
+
     }
-
-
-
 }
-
 void LocalViewModule::createNewCell()
 {
     LocalViewCell new_cell;
@@ -359,7 +462,15 @@ void LocalViewModule::createNewCell()
 
 void LocalViewModule::computeImgDescriptor(cv::Mat & descriptors)
 {
-    bow_extractor_->compute(descriptors,bow_current_descriptor_);
+    if(parameters_.fabmap_algorithm_ == "open")
+    {
+        bow_extractor_->compute(descriptors,bow_current_descriptor_);
+    }
+    else if(parameters_.fabmap_algorithm_ == "original")
+    {
+        bow_extractor_->computeBowInteger(descriptors,bow_current_descriptor_);
+    }
+
 }
 
 void LocalViewModule::publishActiveCells(){

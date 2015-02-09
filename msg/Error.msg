@@ -1,4 +1,9 @@
 Header header
 
-float32 experience_map_error
-float32 dead_reckoning_error
+float32 localization_error_em_
+
+float32 localization_error_dr_
+
+float32 mapping_error_em_
+
+float32 mapping_error_dr_

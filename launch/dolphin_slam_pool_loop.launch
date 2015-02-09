@@ -16,13 +16,13 @@
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
-        <param name="surf_threshold" type="int" value="1000" />
+        <param name="surf_threshold" type="int" value="100" />
 		<param name="image_topic" type="string" value="/image" />		
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
         <param name="source" type="string" value="camera" />
-        <param name="frames_to_jump" type="int" value="10" />
+        <param name="frames_to_jump" type="int" value="6" />
     </node>
 
 	<!-- local view node  -->
@@ -31,8 +31,10 @@
         <param name="matching_algorithm" type="string" value="fabmap" />
 		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />		
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
-		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
-		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
+        <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
+        <param name="fabmap_algorithm" type="string" value="original" />
+        <param name="fabmap_config" type="string" value="$(find dolphin_slam)/config/fabmap_uwsim.moos" />
+        <param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
 		<param name="similarity_threshold" type="double" value="0.55" />
     </node>
 
@@ -42,17 +44,17 @@
 		<param name="base_frame" type="string" value="girona500" />
 		<param name="dvl_position/x" type="double" value="0.75" />
 		<param name="dvl_position/y" type="double" value="0" />
-		<param name="dvl_position/z" type="double" value="0" />
+        <param name="dvl_position/z" type="double" value="-0.4" />
 		<param name="dvl_orientation/r" type="double" value="0" />
 		<param name="dvl_orientation/p" type="double" value="0" />
 		<param name="dvl_orientation/y" type="double" value="3.9269908169872414"/>
     </node>
 
     <node name="place_cell_node" pkg="dolphin_slam" type="place_cell_node" required="true">
-        <param name="neurons_per_dimension" type="int" value="10"/>
-        <param name="neurons_step" type="double" value="0.25" />
+        <param name="neurons_per_dimension" type="int" value="20"/>
+        <param name="neurons_step" type="double" value="0.2" />
 		<param name="recurrent_connection_std" type="int" value="3" />
-        <param name="input_learning_rate" type="double" value="0.65" />
+        <param name="input_learning_rate" type="double" value="0.1" />
         <param name="min_input_age" type="int" value="10" />
 		<param name="local_view_activation" type="string" value="single" />
 		<param name="weight_function" type="string" value="mexican_hat" />
@@ -60,8 +62,8 @@
 
     <node name="experience_map_node" pkg="dolphin_slam" type="experience_map_node" required="true">
         <param name="match_threshold" type="double" value="0.75" />
-        <param name="lv_factor" type="double" value="1" />
-        <param name="pc_factor" type="double" value="0" />
+        <param name="lv_factor" type="double" value="0.5" />
+        <param name="pc_factor" type="double" value="0.5" />
         <param name="min_experience_age" type="int" value="5" />
         <param name="focal_lenght" type="double" value="1501.2" />
     </node>
@@ -70,5 +72,7 @@
     <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
     <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="false"/>
 	<node name="image_view" pkg="image_view" type="image_view" args="image:=/image"  respawn="true"/>
+	
+	    <node name="template_view" pkg="template_view" type="template_view_node"/>
 
 </launch>

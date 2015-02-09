@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(dolphin_slam)
 
+# set default build type
+# Debug|Release|RelWithDebInfo|MinSizeRel
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
+
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -27,15 +35,15 @@ find_package(catkin REQUIRED COMPONENTS
 add_subdirectory(third_part)
 include_directories(third_part/FabMapCommon/include)
 include_directories(third_part/pAcceleratedChowLiu_CompactMemory/include)
+include_directories(third_part/FabMapV2/include)
+
 find_package(VXL REQUIRED )
 if (VXL_FOUND)
+    message(STATUS "VXL found:  ${VXL_CMAKE_DIR}")
   include(${VXL_CMAKE_DIR}/UseVXL.cmake)
 endif()
 
-SET(pAcceleratedChowLiu_SRCS
-  third_part/pAcceleratedChowLiu_CompactMemory/src/AcceleratedCL.cpp
-)
-
+include_directories(${VXL_CORE_INCLUDE_DIR})
 
 
 find_package(OpenCV REQUIRED)
@@ -167,12 +175,16 @@ add_executable(fabmap_training
     src/dolphin_slam/bow_descriptor_extractor.cpp
     src/fabmap_training_node.cpp
     src/dolphin_slam/fabmap_training.cpp
-    ${pAcceleratedChowLiu_SRCS}
 )
+
 target_link_libraries(fabmap_training
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
     vnl
+    MOOS
+    FabMapCommon
+    ${STXXL_LIBRARIES}
+    acceleratedChowLiu
 )
 
 ### Declare a cpp executable
@@ -184,6 +196,7 @@ add_executable(local_view_node
 target_link_libraries(local_view_node
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
+    FabMapV2
 )
 
 #### Declare a cpp executable

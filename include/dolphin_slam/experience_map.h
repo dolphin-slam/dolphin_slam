@@ -109,6 +109,7 @@ public:
 
     void storeMaps();
 
+
 private:
     void calculeLocalisationError();
 
@@ -124,6 +125,7 @@ private:
 
     void getDeadReckoning(tf2::Transform & dr_pose, ros::Time stamp);
 
+    void updateMap2();
     void updateMap();
 
     void calculeExperienceMapError();
@@ -154,6 +156,8 @@ private:
     ExperienceDescriptor current_experience_descriptor_;
     ExperienceDescriptor current_dead_reckoning_descriptor_;
 
+    ExperienceDescriptor best_match_experience_descriptor_;
+
     //! Map
     Map map_;
     Map dead_reckoning_map_;
@@ -161,17 +165,19 @@ private:
     tf2::Vector3 current_error_;
 
 
-    float localisationErrorEM_;
-    float localisationErrorDR_;
+    double localisation_error_em_;
+    double localisation_error_dr_;
 
     double experience_map_error_;
     double dead_reckoning_error_;
+
     cv::Point3d experience_map_independent_error_;
     cv::Point3d dead_reckoning_independent_error_;
     std::ofstream experience_map_error_file_;
     std::ofstream dead_reckoning_error_file_;
 
     std::ofstream experience_map_info_file_;
+    std::ofstream localization_error_file_;
 
     //ROS related variables
     //! ROS Node Handle

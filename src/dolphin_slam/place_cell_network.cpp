@@ -54,7 +54,7 @@ void PlaceCellNetwork::loadParameters()
 
     private_nh.param<double>("recurrent_connection_std",parameters_.recurrent_connection_std_,2);
 
-    private_nh.param<double>("input_learning_rate",parameters_.input_learning_rate_,1);
+    private_nh.param<double>("input_learning_rate",parameters_.input_learning_rate_,0.5);
 
     private_nh.param<int>("min_input_age",parameters_.min_input_age_,50);
 

@@ -51,6 +51,7 @@ void FabmapTraining::loadParameters()
 
 }
 
+
 void FabmapTraining::createROSSubscribers()
 {
     descriptors_subscriber_ = node_handle_.subscribe(parameters_.descriptors_topic_,1,&FabmapTraining::descriptorsCallback,this);
@@ -66,6 +67,10 @@ void FabmapTraining::createROSTimers()
     else if (parameters_.fabmap_implementation_ == "open")
     {
         timeout_ = node_handle_.createTimer(ros::Duration(20),&FabmapTraining::trainOpen,this,true,false);
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Wrong fabmap implementation: " << parameters_.fabmap_implementation_);
     }
 }
 
@@ -164,7 +169,7 @@ void FabmapTraining::trainOriginal(const ros::TimerEvent &)
 
 void FabmapTraining::storeOXS()
 {
-    std::string filename = parameters_.dataset_name_ +  std::string(".oxs");
+    std::string filename = parameters_.dataset_path_  +  parameters_.dataset_name_ +  std::string(".oxs");
 
 
     std::ofstream file(filename.c_str());
@@ -190,12 +195,15 @@ void FabmapTraining::storeOXS()
         }
         file << endl;
     }
+    file << "WORDS:" << bow_vocabulary_.rows << endl;
+
+    file.close();
 
 }
 
 void FabmapTraining::storeOXV()
 {
-    std::string filename = parameters_.dataset_name_ + std::string(".oxv");
+    std::string filename = parameters_.dataset_path_ + parameters_.dataset_name_ + std::string(".oxv");
 
     std::ofstream file(filename.c_str());
 

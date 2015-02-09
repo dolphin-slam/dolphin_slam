@@ -36,6 +36,10 @@ ExperienceMap::ExperienceMap(): tf_listener_(tf_buffer_), it_(node_handle_)
 
     filename = "experience_map_info.txt";
     experience_map_info_file_.open(filename.c_str());
+
+
+    filename = "localization_error.txt";
+    localization_error_file_.open(filename.c_str());
 }
 
 ExperienceMap::~ExperienceMap()
@@ -44,6 +48,8 @@ ExperienceMap::~ExperienceMap()
     dead_reckoning_error_file_.close();
 
     experience_map_info_file_.close();
+
+    localization_error_file_.close();
 
     storeMaps();
 
@@ -384,8 +390,12 @@ void ExperienceMap::computeMatches()
     {
         ROS_DEBUG_STREAM("Match found: " << map_[matches[best_match]].id_ << " " << map_[current_experience_descriptor_].id_);
 
+        best_match_experience_descriptor_ = matches[best_match];
+
         current_error_ = map_[matches[best_match]].pose_.getOrigin() - map_[current_experience_descriptor_].pose_.getOrigin() ;
-        updateMap();
+        //updateMap();
+
+        updateMap2();
 
     }
 
@@ -427,14 +437,14 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
     time_monitor_.finish();
 
-    calculeExperienceMapError();
-    calculeDeadReckoningError();
-    //    calculeLocalisationError();
+    //calculeExperienceMapError();
+    //calculeDeadReckoningError();
+    calculeLocalisationError();
 
     publishExperienceMap();
     publishDeadReckoning();
     publishGroundTruth();
-    //    publishError();
+    publishError();
     //    publishExecutionTime();
 
 
@@ -446,7 +456,9 @@ void ExperienceMap::experienceEventCallback(const ExperienceEventConstPtr &event
 
 
     experience_map_info_file_ << number_of_created_experiences_ << " " <<  number_of_recognized_experiences_ << " " << time_monitor_.getDuration() << " " <<
-                                 experience_map_error_ << " " << dead_reckoning_error_ << " " << localisationErrorEM_ << " " << localisationErrorDR_ << std::endl;
+                                 experience_map_error_ << " " << dead_reckoning_error_ << " " << localisation_error_em_ << " " << localisation_error_dr_ << std::endl;
+
+    localization_error_file_ << localisation_error_em_ << " " << localisation_error_dr_ << std::endl;
 
 }
 
@@ -473,6 +485,10 @@ void ExperienceMap::calculeDeadReckoningError()
     dead_reckoning_independent_error_.z = point.z() - point_gt.z();
     dead_reckoning_error_ = sqrt(pow(dead_reckoning_independent_error_.x,2) + pow(dead_reckoning_independent_error_.y,2) + pow(dead_reckoning_independent_error_.z,2));
 
+
+
+
+
 }
 
 void ExperienceMap::calculeExperienceMapError()
@@ -489,7 +505,13 @@ void ExperienceMap::calculeExperienceMapError()
 
 void ExperienceMap::calculeLocalisationError()
 {
+    tf2::Vector3 position_dr_ = map_[current_experience_descriptor_].dr_pose_.getOrigin();
+    tf2::Vector3 position_gt_ = map_[current_experience_descriptor_].gt_pose_.getOrigin();
+    tf2::Vector3 position_em_ = map_[current_experience_descriptor_].pose_.getOrigin();
 
+
+    localisation_error_em_ = position_em_.distance(position_gt_);
+    localisation_error_dr_ = position_dr_.distance(position_gt_);
 
 }
 
@@ -726,8 +748,8 @@ void ExperienceMap::createROSMessageError(dolphin_slam::Error &message)
     message.header.stamp = ros::Time::now();
     message.header.frame_id = "error";
 
-    message.experience_map_error = localisationErrorEM_;
-    message.dead_reckoning_error = localisationErrorDR_;
+    message.localization_error_em_ = localisation_error_em_;
+    message.localization_error_dr_ = localisation_error_dr_;
 
 }
 
@@ -784,6 +806,53 @@ void ExperienceMap::publishError()
 }
 
 
+void ExperienceMap::updateMap2()
+{
+
+    LinkDescriptor route;
+
+
+    experience_route_.clear();
+
+    experience_route_.push_back(best_match_experience_descriptor_);
+
+    ExperienceDescriptor exp_aux = best_match_experience_descriptor_;
+
+    while(exp_aux != current_experience_descriptor_)
+    {
+
+        exp_aux = boost::target(*boost::out_edges(exp_aux,map_).first,map_);
+        experience_route_.push_back(exp_aux);
+    }
+
+
+    ROS_DEBUG_STREAM("Map update:  current_error_ = " << current_error_.length());
+
+    tf2::Vector3 delta_error = current_error_/(experience_route_.size()-1);
+
+    for(int i=0;i<experience_route_.size()-1;i++)
+    {
+
+        BOOST_FOREACH(LinkDescriptor link, boost::out_edges(experience_route_[i],map_))
+        {
+            if(experience_route_[i+1] == boost::target(link,map_))
+            {
+                route = link;
+                break;
+            }
+        }
+
+        map_[route].translation_ += delta_error;
+
+        map_[experience_route_[i+1]].pose_.setOrigin(map_[experience_route_[i]].pose_.getOrigin() + map_[route].translation_);
+
+    }
+
+
+    experience_route_.clear();
+    experience_route_.push_back(current_experience_descriptor_);
+
+}
 
 /*!
  * \brief Iterate map to minimize errors after loop closure events
@@ -793,7 +862,7 @@ void ExperienceMap::updateMap()
 
     LinkDescriptor route;
 
-    ROS_DEBUG_STREAM("Map update:  current_error_ = " << current_error_.absolute());
+    ROS_DEBUG_STREAM("Map update:  current_error_ = " << current_error_.length());
 
     tf2::Vector3 delta_error = current_error_/(experience_route_.size()-1);
 
