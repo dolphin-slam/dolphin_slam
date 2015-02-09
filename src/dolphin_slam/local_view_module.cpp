@@ -57,6 +57,10 @@ void LocalViewModule::loadParameters()
 
     private_nh.param<std::string>("fabmap_config",parameters_.fabmap_config_,"fabmap.mooos");
 
+    private_nh.param<bool>("fabmap_confirm_match",parameters_.fabmap_confirm_match_,true);
+
+
+
 
 }
 
@@ -436,7 +440,11 @@ void LocalViewModule::computeFabmap()
         }
 
 
-        fabmap_original_->ConfirmLastMatch();
+        if(parameters_.fabmap_confirm_match_)
+        {
+            fabmap_original_->ConfirmLastMatch();
+        }
+
 
 
 

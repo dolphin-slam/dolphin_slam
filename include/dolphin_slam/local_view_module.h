@@ -46,6 +46,7 @@ struct LocalViewParameters
     std::string fabmap_algorithm_;
     std::string fabmap_config_;
     std::string descriptors_topic_;
+    bool fabmap_confirm_match_;
 
 };
 
