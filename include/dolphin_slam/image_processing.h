@@ -49,6 +49,8 @@ struct ImageProcessingParameters
     int frames_to_jump_;
     string source_;
     string sonar_mask_;
+    string image_detector_;
+    bool apply_roi_;
 };
 
 
@@ -80,6 +82,11 @@ private:
     std::ofstream log_file_;
 
     cv::Ptr<cv::SURF> surf_;
+    cv::Ptr<cv::SIFT> sift_;
+    cv::Ptr<cv::GFTTDetector> gftt_;
+
+    cv::Ptr<cv::CLAHE> clahe;
+
 
     ImageProcessingParameters parameters_;
 

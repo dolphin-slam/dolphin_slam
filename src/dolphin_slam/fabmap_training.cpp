@@ -49,6 +49,7 @@ void FabmapTraining::loadParameters()
     private_nh_.param<std::string>("dataset_path",parameters_.dataset_path_,"dataset");
 
 
+
 }
 
 

@@ -14,12 +14,14 @@
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
-        <param name="surf_threshold" type="int" value="1000" />
+        <param name="surf_threshold" type="int" value="1500" />
 		<param name="image_topic" type="string" value="/image" />		
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-        <param name="frames_to_jump" type="int" value="12" />
+        <param name="frames_to_jump" type="int" value="15" />
+        <param name="image_detector" type="string" value="gftt" />
+        <param name="apply_roi" type="bool" value="true" />
     </node>
 
 	<!-- view surf keypoints plotted on image  -->
@@ -32,7 +34,7 @@
         <param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>
         <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
         <param name="cluster_size" type="double" value="0.6" />
-        <param name="cluster_count" type="int" value="1000" />
+        <param name="cluster_count" type="int" value="250" />
         <param name="clustering_algorithm" type="string" value="kmeans" />        
         <param name="fabmap_implementation" type="string" value="original" />        
         <param name="dataset_name" type="string" value="pool_loop" />

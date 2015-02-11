@@ -7,6 +7,15 @@ const float ROS_TIMER_STEP = 0.25;
 using std::endl;
 using std::cout;
 
+void PrintLocationProbabilityVector(LocationProbabilityContainer ComputedLocationProbability) {
+    cout << "Number of locations in the map: "<< ComputedLocationProbability.size() << endl;
+    cout << "Probability of each location: " << endl;
+    for (unsigned int i = 0; i < ComputedLocationProbability.size();  i++) {
+        cout << ComputedLocationProbability[i] << " ";
+    }
+    cout << endl;
+}
+
 namespace dolphin_slam
 {
 
@@ -119,7 +128,7 @@ void LocalViewModule::init()
             bow_extractor_ = new BOWImgDescriptorExtractor(cv::DescriptorMatcher::create("FlannBased"));
             bow_extractor_->setVocabulary(bow_vocabulary_);
 
-            ROS_DEBUG_STREAM("Fabmap algorithm = original = " << parameters_.fabmap_algorithm_);
+            ROS_DEBUG_STREAM("Fabmap algorithm = " << parameters_.fabmap_algorithm_);
             ROS_DEBUG_STREAM("Fabmap config = " << parameters_.fabmap_config_);
 
 
@@ -407,6 +416,9 @@ void LocalViewModule::computeFabmap()
         double best_match = 0;
 
         fabmap_original_->ProcessObservation(observation,computed_location_probability);
+
+
+        PrintLocationProbabilityVector(computed_location_probability);
 
         for(int i=0;i<computed_location_probability.size();i++)
         {

@@ -80,7 +80,7 @@ ProcessConfig = pFabMapV2
 		//by transforming this position estimate through a motion model.
 		//The motion model is that the robot randomly moves to 
 		//one of the adjacent places, or remains where it is. All three actions have equal probability.
-    PriorModel = ALWAYS_MOVE_MOTION_MODEL
+    PriorModel = UNIFORM_LOCATION_PRIOR
 
 	
 		//If the ALWAYS_MOVE_MOTION_MODEL motion model is defined, 

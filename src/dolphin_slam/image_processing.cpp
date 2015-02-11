@@ -58,6 +58,11 @@ void ImageProcessing::loadParameters()
 
     private_nh_.param<string>("sonar_mask",parameters_.sonar_mask_,"sonar_mask.jpg");
 
+
+    private_nh_.param<string>("image_detector",parameters_.image_detector_,"surf");
+
+    private_nh_.param<bool>("apply_roi",parameters_.apply_roi_,false);
+
 }
 
 
@@ -89,6 +94,7 @@ void ImageProcessing::createROSSubscribers()
 
 }
 
+
 void ImageProcessing::createROSPublishers()
 {
 
@@ -108,9 +114,13 @@ void ImageProcessing::createROSServices()
 bool ImageProcessing::init()
 {
 
+
     if(parameters_.source_ == "camera")
     {
         surf_ = new cv::SURF(parameters_.surf_threshold_);
+        gftt_ = new cv::GFTTDetector(800,0.05,15,3,true);
+        sift_ = new cv::SIFT();
+
     }
     else if(parameters_.source_ == "sonar")
     {
@@ -124,6 +134,9 @@ bool ImageProcessing::init()
 
         cv::imwrite("sonar_mask.jpg",sonar_mask_);
     }
+
+    clahe = cv::createCLAHE(2,cv::Size(16,16));
+
 }
 
 
@@ -161,6 +174,7 @@ void ImageProcessing::publishDescriptors()
 
     std::copy(descriptors_.begin<float>(),descriptors_.end<float>(),msg.data_.begin());
     descriptors_publisher_.publish(msg);
+
 }
 
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
@@ -174,18 +188,40 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     cv::Mat sonar_gray;
 
 
+
     if (count == 0){
         if(parameters_.source_ == "camera")
         {
 
             ROS_DEBUG_STREAM("Image received. seq = " << msg->header.seq);
-
             image_ = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::MONO8);
 
-            //! Detect SURF keypoints in the image
-            surf_->detect(image_->image,keypoints_);
-            //! Compute SURF descriptors
-            surf_->compute(image_->image,keypoints_,descriptors_);
+
+
+
+            if(parameters_.image_detector_ == "surf")
+            {
+
+                clahe->apply(image_->image,image_->image);
+
+                //! Detect SURF keypoints in the image
+                surf_->detect(image_->image,keypoints_);
+                //! Compute SURF descriptors
+                surf_->compute(image_->image,keypoints_,descriptors_);
+
+
+
+            }
+            else if (parameters_.image_detector_ == "gftt")
+            {
+
+                clahe->apply(image_->image,image_->image);
+
+
+                gftt_->detect(image_->image,keypoints_);
+
+                sift_->compute(image_->image,keypoints_,descriptors_);
+            }
 
             ROS_DEBUG_STREAM("Number of SURF keypoints: " << keypoints_.size());
 
@@ -198,7 +234,6 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
         }
         else if(parameters_.source_ == "sonar")
         {
-
 
             image_ = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::MONO16);
 
