@@ -136,6 +136,7 @@ private:
 
     std::ofstream log_file_rate_;
     std::ofstream log_file_metrics_;
+    std::ofstream log_file_bow_;
 
 
     TimeMonitor time_monitor_;

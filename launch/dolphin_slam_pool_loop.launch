@@ -12,11 +12,11 @@
     <param name="/use_sim_time" type="bool" value="true" />
 
 	<!-- Play messages from bagfile -->
-    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -r 2 -q --clock" required="false"/>
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q --clock" required="false"/>
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
-        <param name="surf_threshold" type="int" value="1500" />
+        <param name="surf_threshold" type="int" value="100" />
 		<param name="image_topic" type="string" value="/image" />		
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
@@ -24,6 +24,8 @@
         <param name="source" type="string" value="camera" />
         <param name="frames_to_jump" type="int" value="12" />
         <param name="image_detector" type="string" value="gftt" />
+        <param name="use_selected_images" type="bool" value="true" />
+        <param name="selected_images_file" type="string" value="$(arg vocabulary_path)good_images2.txt" />
     </node>
 
 	<!-- local view node  -->
@@ -36,7 +38,7 @@
         <param name="fabmap_algorithm" type="string" value="original" />
         <param name="fabmap_config" type="string" value="$(find dolphin_slam)/config/fabmap_pool_loop.moos" />
         <param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
-        <param name="similarity_threshold" type="double" value="0.75" />
+        <param name="similarity_threshold" type="double" value="0.3" />
         <param name="fabmap_confirm_match" type="bool" value="true" />
     </node>
 

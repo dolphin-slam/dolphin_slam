@@ -38,6 +38,12 @@
         <param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>
         <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
         <param name="cluster_size" type="double" value="0.25" />
+        <param name="cluster_count" type="int" value="200" />
+        <param name="clustering_algorithm" type="string" value="kmeans" />
+        <param name="fabmap_implementation" type="string" value="original" />
+        <param name="dataset_name" type="string" value="yatch" />
+        <param name="dataset_path" type="string" value="$(arg vocabulary_path)" />
+        <param name="times_to_use_samples" type="int" value="1" />
     </node>
 	
 </launch>

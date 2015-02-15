@@ -51,6 +51,9 @@ struct ImageProcessingParameters
     string sonar_mask_;
     string image_detector_;
     bool apply_roi_;
+    bool use_selected_images_;
+    string selected_images_file_;
+
 };
 
 
@@ -90,6 +93,8 @@ private:
 
     ImageProcessingParameters parameters_;
 
+    std::vector<int> selected_images;
+
     ros::NodeHandle node_handle_;
 
     ros::Publisher descriptors_publisher_;
@@ -108,6 +113,8 @@ private:
     cv_bridge::CvImagePtr image_;
 
     cv::Mat sonar_mask_;
+
+    bool is_selected_image(int id);
 
 };
 

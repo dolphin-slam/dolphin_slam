@@ -20,6 +20,7 @@
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
         <param name="frames_to_jump" type="int" value="60" />
+        <param name="use_selected_images" type="bool" value="false" />
     </node>
 
 	<!-- view surf keypoints plotted on image  -->

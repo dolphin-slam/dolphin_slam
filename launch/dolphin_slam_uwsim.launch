@@ -12,7 +12,7 @@
     <param name="/use_sim_time" type="bool" value="true" />
 
 	<!-- Play messages from bagfile -->
-    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q --clock" required="false"/>
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 2 --clock" required="false"/>
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
@@ -23,6 +23,7 @@
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
         <param name="source" type="string" value="camera" />
         <param name="frames_to_jump" type="int" value="30" />
+        <param name="use_selected_images" type="bool" value="false" />
     </node>
 
 	<!-- local view node  -->
@@ -36,6 +37,7 @@
         <param name="fabmap_config" type="string" value="$(find dolphin_slam)/config/fabmap_uwsim.moos" />
 		<param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
 		<param name="similarity_threshold" type="double" value="0.65" />
+        <param name="fabmap_confirm_match" type="bool" value="true" />
     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">

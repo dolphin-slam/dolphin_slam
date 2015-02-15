@@ -36,9 +36,12 @@
 		<param name="fabmap_vocab" type="string" value="$(arg vocabulary_path)fabmap_vocab.xml" />		
 		<param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>		
 		<param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
-		<param name="bow_vocab" type="string" value="$$(arg vocabulary_path)bow_vocab.xml" />
-        <param name="similarity_threshold" type="double" value="0.25" />
-    </node>
+        <param name="fabmap_algorithm" type="string" value="original" />
+        <param name="fabmap_config" type="string" value="$(find dolphin_slam)/config/fabmap_yatch.moos" />
+        <param name="bow_vocab" type="string" value="$(arg vocabulary_path)bow_vocab.xml" />
+        <param name="similarity_threshold" type="double" value="0.3" />
+        <param name="fabmap_confirm_match" type="bool" value="true" />
+     </node>
 
    <node name="robot_state_node" pkg="dolphin_slam" type="robot_state_node" required="true">
         <param name="dvl_topic" type="string" value="/dvl" />
@@ -74,5 +77,7 @@
     <node name="rviz_pc" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/pose_cell.rviz"  respawn="false"/>
     <node name="rviz_em" pkg="rviz" type="rviz" args="-d $(find dolphin_slam)/config/experience_map.rviz" respawn="false"/>
     <node pkg="image_view" type="image_view" name="keypoints_view" args="image:=/image_keypoints" respawn="false"/>
+
+        <node name="template_view" pkg="template_view" type="template_view_node"/>
 
 </launch>

@@ -63,6 +63,10 @@ void ImageProcessing::loadParameters()
 
     private_nh_.param<bool>("apply_roi",parameters_.apply_roi_,false);
 
+    private_nh_.param<bool>("use_selected_images",parameters_.use_selected_images_,false);
+
+    private_nh_.param<string>("selected_images_file",parameters_.selected_images_file_,"good_images.txt");
+
 }
 
 
@@ -118,7 +122,7 @@ bool ImageProcessing::init()
     if(parameters_.source_ == "camera")
     {
         surf_ = new cv::SURF(parameters_.surf_threshold_);
-        gftt_ = new cv::GFTTDetector(800,0.05,15,3,true);
+        gftt_ = new cv::GFTTDetector(800,0.01,15,3,true);
         sift_ = new cv::SIFT();
 
     }
@@ -136,6 +140,32 @@ bool ImageProcessing::init()
     }
 
     clahe = cv::createCLAHE(2,cv::Size(16,16));
+
+    if(parameters_.use_selected_images_){
+        std::ifstream file(parameters_.selected_images_file_.c_str());
+        cout << "filename = " << parameters_.selected_images_file_ << endl;
+
+        int id;
+
+        file >> id;
+
+        cout << "ids = ";
+        while(file.good())
+        {
+            selected_images.push_back(id);
+
+            cout << id << " ";
+            file >> id;
+        }
+        cout << endl;
+
+        file.close();
+
+
+
+
+    }
+
 
 }
 
@@ -177,6 +207,20 @@ void ImageProcessing::publishDescriptors()
 
 }
 
+
+bool ImageProcessing::is_selected_image(int id)
+{
+    for(int i=0;i<selected_images.size();i++)
+    {
+        if(id < selected_images[i])
+            return false;
+        else if (id == selected_images[i])
+            return true;
+    }
+
+    return false;
+}
+
 void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     static int count = 0;
@@ -188,6 +232,13 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     cv::Mat sonar_gray;
 
 
+    if(parameters_.use_selected_images_)
+    {
+        if(is_selected_image(msg->header.seq))
+            count = 0;
+        else
+            return;
+    }
 
     if (count == 0){
         if(parameters_.source_ == "camera")
@@ -202,7 +253,7 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
             if(parameters_.image_detector_ == "surf")
             {
 
-                clahe->apply(image_->image,image_->image);
+                //clahe->apply(image_->image,image_->image);
 
                 //! Detect SURF keypoints in the image
                 surf_->detect(image_->image,keypoints_);
@@ -215,7 +266,7 @@ void ImageProcessing::imageCallback(const sensor_msgs::ImageConstPtr &msg)
             else if (parameters_.image_detector_ == "gftt")
             {
 
-                clahe->apply(image_->image,image_->image);
+               // clahe->apply(image_->image,image_->image);
 
 
                 gftt_->detect(image_->image,keypoints_);

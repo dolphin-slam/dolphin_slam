@@ -10,18 +10,20 @@
     <arg name="vocabulary_path" value ="$(find dolphin_slam)/experiments/pool_loop/training/"/>
 
 	<!-- Play messages from bagfile -->
-    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 3 --clock" required="false"/>
+    <node pkg="rosbag" type="play" name="play" args="$(arg bagfile) -q -r 10 -s 25 --clock" required="false"/>
 	
 	<!-- process images to extract surf keypoints -->
     <node pkg="dolphin_slam" type="image_processing_node" name="image_processing_node" required="true">
-        <param name="surf_threshold" type="int" value="1500" />
+        <param name="surf_threshold" type="int" value="100" />
 		<param name="image_topic" type="string" value="/image" />		
 		<param name="image_transport" type="string" value="raw" />		
 		<param name="descriptors_topic" type="string" value="/descriptors" />		
 		<param name="keypoints_topic" type="string" value="/image_keypoints" />
-        <param name="frames_to_jump" type="int" value="15" />
-        <param name="image_detector" type="string" value="gftt" />
-        <param name="apply_roi" type="bool" value="true" />
+        <param name="frames_to_jump" type="int" value="0" />
+        <param name="image_detector" type="string" value="surf" />
+        <param name="apply_roi" type="bool" value="false" />
+        <param name="use_selected_images" type="bool" value="true" />
+        <param name="selected_images_file" type="string" value="$(arg vocabulary_path)good_images2.txt" />
     </node>
 
 	<!-- view surf keypoints plotted on image  -->
@@ -34,11 +36,12 @@
         <param name="fabmap_descriptors" type="string" value="$(arg vocabulary_path)fabmap_descriptors.xml"/>
         <param name="fabmap_tree" type="string" value="$(arg vocabulary_path)fabmap_tree.xml" />
         <param name="cluster_size" type="double" value="0.6" />
-        <param name="cluster_count" type="int" value="250" />
+        <param name="cluster_count" type="int" value="500" />
         <param name="clustering_algorithm" type="string" value="kmeans" />        
         <param name="fabmap_implementation" type="string" value="original" />        
         <param name="dataset_name" type="string" value="pool_loop" />
         <param name="dataset_path" type="string" value="$(arg vocabulary_path)" />
+        <param name="times_to_use_samples" type="int" value="1" />
     </node>
 
 	<!-- record topic messages on a bag file  -->

@@ -23,6 +23,7 @@ struct FabmapTrainingParameters
     std::string fabmap_implementation_;
     std::string dataset_name_;
     std::string dataset_path_;
+    int times_to_use_samples_;
 };
 
 class FabmapTraining

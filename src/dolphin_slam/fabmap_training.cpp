@@ -48,7 +48,7 @@ void FabmapTraining::loadParameters()
 
     private_nh_.param<std::string>("dataset_path",parameters_.dataset_path_,"dataset");
 
-
+    private_nh_.param<int>("times_to_use_samples",parameters_.times_to_use_samples_,1);
 
 }
 
@@ -176,26 +176,30 @@ void FabmapTraining::storeOXS()
     std::ofstream file(filename.c_str());
 
     file << "VOCABULARY:" << parameters_.dataset_name_ + std::string(".oxv") << endl;
-    file << "SCENES:" << bow_descriptors_.size() << endl;
+    file << "SCENES:" << bow_descriptors_.size()*parameters_.times_to_use_samples_ << endl;
 
-    for(int i=0;i<bow_descriptors_.size();i++)
+    for(int times = 0; times < parameters_.times_to_use_samples_;times++)
     {
-        file << "SCENE:" << endl << endl << endl;
-
-        for(int j=0;j<bow_descriptors_[i].cols;j++)
+        for(int i=0;i<bow_descriptors_.size();i++)
         {
-            if( bow_descriptors_[i].at<int>(0,j) != 0 )
-                file << j << " ";
-        }
-        file << endl;
+            file << "SCENE:" << endl << endl << endl;
 
-        for(int j=0;j<bow_descriptors_[i].cols;j++)
-        {
-            if( bow_descriptors_[i].at<int>(0,j) != 0 )
-                file << bow_descriptors_[i].at<int>(0,j) << " ";
+            for(int j=0;j<bow_descriptors_[i].cols;j++)
+            {
+                if( bow_descriptors_[i].at<int>(0,j) != 0 )
+                    file << j << " ";
+            }
+            file << endl;
+
+            for(int j=0;j<bow_descriptors_[i].cols;j++)
+            {
+                if( bow_descriptors_[i].at<int>(0,j) != 0 )
+                    file << bow_descriptors_[i].at<int>(0,j) << " ";
+            }
+            file << endl;
         }
-        file << endl;
     }
+
     file << "WORDS:" << bow_vocabulary_.rows << endl;
 
     file.close();

@@ -35,6 +35,7 @@ LocalViewModule::LocalViewModule()
 
     log_file_rate_.open("localviews_rate.log");
     log_file_metrics_.open("localviews_metrics.log");
+    log_file_bow_.open("bow_descriptors.txt");
 
 }
 
@@ -42,6 +43,7 @@ LocalViewModule::~LocalViewModule()
 {
     log_file_rate_.close();
     log_file_metrics_.close();
+    log_file_bow_.close();
 }
 
 void LocalViewModule::loadParameters()
@@ -302,6 +304,23 @@ void LocalViewModule::writeLog()
                       << metrics_.creation_count_ << " "
                       << metrics_.recognition_count_ << " "
                       << std::endl;
+
+    log_file_bow_ << image_seq_ << " ";
+
+    for(int i=0;i<bow_current_descriptor_.cols;i++)
+    {
+        if(parameters_.matching_algorithm_ == "fabmap" && parameters_.fabmap_algorithm_ == "original")
+        {
+            log_file_bow_ << bow_current_descriptor_.at<int>(0,i)<< " ";
+        }
+        else
+        {
+            log_file_bow_ << bow_current_descriptor_.at<float>(0,i)<< " ";
+        }
+
+    }
+    log_file_bow_ << endl;
+
 }
 
 
@@ -325,10 +344,12 @@ void LocalViewModule::computeCorrelations()
     std::vector<LocalViewCell>::iterator cell_iterator_;
     std::vector<LocalViewCell>::iterator best_match;
     best_match = cells_.begin();
+    cout << "correlations ";
     for(cell_iterator_ = cells_.begin();cell_iterator_!= cells_.end();cell_iterator_++)
     {
         cell_iterator_->rate_ = cv::compareHist(bow_descriptors_[cell_iterator_->id_],bow_current_descriptor_,CV_COMP_CORREL);
 
+        cout << cell_iterator_->rate_ << " " ;
         //! test activation against a similarity threshold;
         cell_iterator_->active_ = (cell_iterator_->rate_ > parameters_.similarity_threshold_);
 
@@ -344,6 +365,7 @@ void LocalViewModule::computeCorrelations()
         }
     }
 
+    cout << endl;
 
     if(!new_place_)
     {
@@ -482,6 +504,9 @@ void LocalViewModule::createNewCell()
 
 void LocalViewModule::computeImgDescriptor(cv::Mat & descriptors)
 {
+    if(parameters_.matching_algorithm_ == "fabmap")
+    {
+
     if(parameters_.fabmap_algorithm_ == "open")
     {
         bow_extractor_->compute(descriptors,bow_current_descriptor_);
@@ -489,6 +514,10 @@ void LocalViewModule::computeImgDescriptor(cv::Mat & descriptors)
     else if(parameters_.fabmap_algorithm_ == "original")
     {
         bow_extractor_->computeBowInteger(descriptors,bow_current_descriptor_);
+    }
+    }else if (parameters_.matching_algorithm_ == "correlation")
+    {
+        bow_extractor_->compute(descriptors,bow_current_descriptor_);
     }
 
 }
